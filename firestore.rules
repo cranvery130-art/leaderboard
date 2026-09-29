@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 이 코드를 아는 사람 = 접근 가능한 수준의 보안입니다 (Firebase Auth 미도입).
+    // 코드 자체가 사실상의 "비밀번호" 역할을 하며, 앱 UI에서 개설자/수정권한자/조회자
+    // 권한을 나눠 보여주지만, 이 규칙은 그 구분을 서버에서 강제하지는 않습니다.
+    // 학교에 정식 도입하기 전, 교육청 개인정보 담당자 확인을 권장합니다.
+    match /workspaces/{code}/meta/{document} {
+      allow read, write: if true;
+    }
+  }
+}
