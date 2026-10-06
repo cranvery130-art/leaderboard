@@ -24,4 +24,10 @@ Vercel 프로젝트 설정 > Environment Variables에 .env.example과 동일한 
     JSON 백업 파일과 엑셀 내보내기 파일에는 이름이 포함됩니다(로컬 파일이라 무관).
 
 ## 보안 규칙
-`firestore.rules` 참고. 코드를 아는 사람은 누구나 읽고 쓸 수 있는 수준입니다(Firebase Auth 미도입).
+`firestore.rules` 참고. 앱이 쓰는 문서(`config`, `data`)만 허용하고 목록 조회·그 외 경로는 막으며,
+저장 값의 종류·크기를 점검합니다. 다만 코드를 아는 사람은 읽고 쓸 수 있는 수준입니다(Firebase Auth 미도입 —
+개설자/수정자/조회자 구분은 앱 화면에서만 적용되고 서버에서 강제되지 않습니다).
+
+적용 방법: Firebase 콘솔 → Firestore Database → 규칙 탭에 붙여넣고 게시하기 전에,
+**규칙 플레이그라운드**에서 `workspaces/테스트/meta/config`(get)와 `.../meta/data`(get) 요청이
+허용되는지 확인하세요. 문제가 생기면 이전 규칙으로 되돌릴 수 있도록 기존 규칙은 복사해 두세요.

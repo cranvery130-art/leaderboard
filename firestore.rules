@@ -1,12 +1,47 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 이 코드를 아는 사람 = 접근 가능한 수준의 보안입니다 (Firebase Auth 미도입).
-    // 코드 자체가 사실상의 "비밀번호" 역할을 하며, 앱 UI에서 개설자/수정권한자/조회자
-    // 권한을 나눠 보여주지만, 이 규칙은 그 구분을 서버에서 강제하지는 않습니다.
-    // 학교에 정식 도입하기 전, 교육청 개인정보 담당자 확인을 권장합니다.
-    match /workspaces/{code}/meta/{document} {
-      allow read, write: if true;
+
+    // 워크스페이스 코드: 앱이 만드는 코드는 최대 30자(공백·슬래시 없음)입니다.
+    function validCode(code) {
+      return code.size() >= 1 && code.size() <= 40;
+    }
+
+    // ───────────────────────────────────────────────────────────────
+    // [이 규칙이 하는 일 / 못 하는 일]
+    //  - 하는 일: 앱이 실제로 쓰는 문서(config, data) 두 개만 허용하고, 그 외 경로·문서는
+    //    전부 차단합니다. 문서 목록 조회(list)도 막아서 코드를 훑어 찾을 수 없게 하고,
+    //    저장되는 값의 종류·크기를 점검해 엉뚱한 값이 잔뜩 쌓이는 것을 막습니다.
+    //  - 못 하는 일: "이 사람이 개설자/수정자/조회자인가"를 서버에서 구분하지는 못합니다.
+    //    이 앱에는 Firebase Auth(로그인)가 없어서, 규칙이 사용자를 알아볼 방법이 없기 때문입니다.
+    //    코드를 아는 사람은 읽고 쓸 수 있는 수준이고, 개설자/수정자 구분은 앱 화면에서만 적용됩니다.
+    //    이 구분까지 서버에서 강제하려면 Firebase Auth 도입과 로그인 구조 개편이 필요합니다.
+    // ───────────────────────────────────────────────────────────────
+
+    // 코드별 설정: 조회용·개설자용 비밀번호와 접근 목록
+    match /workspaces/{code}/meta/config {
+      allow get: if validCode(code);
+      allow delete: if validCode(code);
+      allow create, update: if validCode(code)
+        && request.resource.data.get('viewerPassword', '') is string
+        && request.resource.data.get('viewerPassword', '').size() <= 100
+        && request.resource.data.get('founderPassword', '') is string
+        && request.resource.data.get('founderPassword', '').size() <= 100
+        && request.resource.data.get('accessList', []) is list
+        && request.resource.data.get('accessList', []).size() <= 500;
+    }
+
+    // 코드별 실제 데이터: 명단(이름 제외), 경기 기록, 승점 기준
+    match /workspaces/{code}/meta/data {
+      allow get: if validCode(code);
+      allow delete: if validCode(code);
+      allow create, update: if validCode(code)
+        && request.resource.data.get('title', '') is string
+        && request.resource.data.get('title', '').size() <= 300
+        && request.resource.data.get('students', []) is list
+        && request.resource.data.get('students', []).size() <= 5000
+        && request.resource.data.get('matches', []) is list
+        && request.resource.data.get('matches', []).size() <= 20000;
     }
   }
 }

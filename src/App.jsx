@@ -42,6 +42,7 @@ import {
   setLocal,
   removeLocal,
   getNameMap,
+  setNameMap,
   mergeNameMap,
   removeNameMap,
 } from "./storage";
@@ -114,6 +115,50 @@ function parseRowsToStudents(rows) {
     result.push({ id: uid("stu"), grade, classNum, number, name: String(nameRaw).trim(), gender });
   }
   return result;
+}
+
+function studentKey(s) {
+  return `${Number(s.grade)}-${Number(s.classNum)}-${Number(s.number)}`;
+}
+
+// 같은 학년·반·번호의 학생은 새로 만들지 않고, 기존 학생(id 유지)의 이름·성별만 갱신합니다.
+// id를 유지해야 이미 입력된 경기 기록이 끊기지 않아요.
+function mergeIncomingStudents(existing, incoming) {
+  const incomingByKey = new Map();
+  incoming.forEach((s) => incomingByKey.set(studentKey(s), s)); // 같은 파일 안에서 겹치면 마지막 줄이 우선
+  const existingIdx = new Map();
+  existing.forEach((s, i) => {
+    const k = studentKey(s);
+    if (!existingIdx.has(k)) existingIdx.set(k, i);
+  });
+  const next = existing.slice();
+  const addedIds = [];
+  const updated = []; // 되돌리기용: 바뀌기 전의 이름·성별
+  let unchanged = 0;
+  incomingByKey.forEach((inc, key) => {
+    const idx = existingIdx.get(key);
+    if (idx === undefined) {
+      next.push(inc);
+      addedIds.push(inc.id);
+      return;
+    }
+    const cur = next[idx];
+    if ((cur.name || "") === inc.name && cur.gender === inc.gender) {
+      unchanged += 1;
+      return;
+    }
+    updated.push({ id: cur.id, name: cur.name || "", gender: cur.gender });
+    next[idx] = { ...cur, name: inc.name, gender: inc.gender };
+  });
+  return { next, addedIds, updated, unchanged };
+}
+
+function summarizeMerge({ addedIds, updated, unchanged }) {
+  const parts = [];
+  if (addedIds.length) parts.push(`신규 ${addedIds.length}명 추가`);
+  if (updated.length) parts.push(`기존 ${updated.length}명 정보 갱신`);
+  if (unchanged) parts.push(`변경 없음 ${unchanged}명`);
+  return parts.join(" · ");
 }
 
 function groupByRank(sortedRows) {
@@ -636,6 +681,19 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
     return () => unsubscribe();
   }, [role, workspaceCode, onRefreshRole]);
 
+  // 되돌리기용: 이 기기 이름표에서 특정 학생 id의 이름을 지웁니다.
+  function forgetLocalNames(ids) {
+    const map = getNameMap(workspaceCode);
+    let changed = false;
+    ids.forEach((id) => {
+      if (id in map) {
+        delete map[id];
+        changed = true;
+      }
+    });
+    if (changed) setNameMap(workspaceCode, map);
+  }
+
   function refreshNamesFromLocalMap() {
     const map = getNameMap(workspaceCode);
     setStudents((prev) => prev.map((s) => ({ ...s, name: map[s.id] || s.name || "" })));
@@ -967,6 +1025,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
             openConfirm={openConfirm}
             closeConfirm={closeConfirm}
             removeStudentFromMatches={removeStudentFromMatches}
+            forgetLocalNames={forgetLocalNames}
             readOnly={readOnly}
           />
         )}
@@ -1066,7 +1125,8 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                 points: [
                   "학년·반·번호·이름·성별로 학생을 등록해요. 엑셀 파일을 끌어다 놓으면 한 번에 여러 명을 올릴 수 있어요.",
                   "체크박스로 여러 명을 선택해 한꺼번에 삭제하거나 성별을 바꿀 수 있어요.",
-                  "방금 엑셀로 올린 명단은 '되돌리기'로 취소할 수 있어요.",
+                  "엑셀을 다시 올려도 같은 학년·반·번호의 학생은 중복으로 늘어나지 않고, 기존 학생의 이름·성별만 갱신돼요(경기 기록은 그대로 유지). 단, 직접 한 명씩 추가할 때 이미 있는 번호면 추가되지 않아요.",
+                  "방금 엑셀로 올린 명단은 '되돌리기'로 취소할 수 있어요(신규 추가는 삭제, 갱신은 이전 값으로 복구).",
                   "학생 이름은 이 기기(브라우저)에만 저장되고 서버에는 올라가지 않아요. 다른 기기에서는 이름 칸이 비어 보일 수 있는데, 그 자리를 클릭해 이름을 입력하면 그 기기에도 저장돼요.",
                 ],
               },
@@ -1485,14 +1545,14 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
   );
 }
 
-function RosterManager({ students, setStudents, showToast, openConfirm, closeConfirm, removeStudentFromMatches, readOnly }) {
+function RosterManager({ students, setStudents, showToast, openConfirm, closeConfirm, removeStudentFromMatches, forgetLocalNames, readOnly }) {
   const [form, setForm] = useState({ grade: 1, classNum: 1, number: "", name: "", gender: "M" });
   const [bulkText, setBulkText] = useState("");
   const [filterGrade, setFilterGrade] = useState("ALL");
   const [filterClass, setFilterClass] = useState("ALL");
   const [dragOver, setDragOver] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
-  const [lastBulkAddedIds, setLastBulkAddedIds] = useState(null);
+  const [lastBulk, setLastBulk] = useState(null); // { addedIds, updated, summary }
   const fileInputRef = useRef(null);
 
   function toggleSelect(id) {
@@ -1544,10 +1604,12 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
       showToast("번호와 이름을 입력해 주세요.", "warn");
       return;
     }
-    const next = [
-      ...students,
-      { id: uid("stu"), grade: Number(form.grade), classNum: Number(form.classNum), number: Number(form.number), name: form.name.trim(), gender: form.gender },
-    ];
+    const candidate = { id: uid("stu"), grade: Number(form.grade), classNum: Number(form.classNum), number: Number(form.number), name: form.name.trim(), gender: form.gender };
+    if (students.some((s) => studentKey(s) === studentKey(candidate))) {
+      showToast(`${candidate.grade}학년 ${candidate.classNum}반 ${candidate.number}번은 이미 등록돼 있어요. 이름·성별은 오른쪽 명단에서 직접 고칠 수 있어요.`, "warn");
+      return;
+    }
+    const next = [...students, candidate];
     setStudents(next);
     setForm((f) => ({ ...f, number: "", name: "" }));
     showToast(`${form.name} 학생을 추가했습니다.`, "ok");
@@ -1559,27 +1621,49 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
   }
 
   function undoLastBulkAdd() {
-    if (!lastBulkAddedIds) return;
-    const idSet = new Set(lastBulkAddedIds);
-    setStudents(students.filter((s) => !idSet.has(s.id)));
-    setLastBulkAddedIds(null);
-    showToast("방금 추가한 명단을 되돌렸습니다.", "ok");
+    if (!lastBulk) return;
+    const addedSet = new Set(lastBulk.addedIds);
+    const prevById = new Map(lastBulk.updated.map((u) => [u.id, u]));
+    setStudents(
+      students
+        .filter((s) => !addedSet.has(s.id))
+        .map((s) => {
+          const p = prevById.get(s.id);
+          return p ? { ...s, name: p.name, gender: p.gender } : s;
+        })
+    );
+    // 이 기기 이름표에서도 되돌려요 (이전에 이름이 없던 학생 + 방금 추가한 학생)
+    if (forgetLocalNames) {
+      forgetLocalNames([...lastBulk.addedIds, ...lastBulk.updated.filter((u) => !u.name).map((u) => u.id)]);
+    }
+    setLastBulk(null);
+    showToast("방금 올린 명단을 되돌렸습니다.", "ok");
+  }
+
+  // 엑셀·붙여넣기 공통: 같은 학년·반·번호는 중복 추가하지 않고 기존 학생을 갱신합니다.
+  function applyIncoming(parsed) {
+    const result = mergeIncomingStudents(students, parsed);
+    const changed = result.addedIds.length + result.updated.length;
+    if (changed > 0) {
+      setStudents(result.next);
+      setLastBulk({ addedIds: result.addedIds, updated: result.updated, summary: summarizeMerge(result) });
+    }
+    return result;
   }
 
   function bulkAdd() {
     const lines = bulkText.split("\n").map((l) => l.trim()).filter(Boolean);
-    const added = [];
+    const parsed = [];
     lines.forEach((line) => {
       const parts = line.split(/[,\t]+/).map((p) => p.trim()).filter(Boolean);
       if (parts.length < 5) return;
       const [g, c, n, name, gender] = parts;
-      added.push({ id: uid("stu"), grade: Number(g), classNum: Number(c), number: Number(n), name, gender: normalizeGender(gender) });
+      parsed.push({ id: uid("stu"), grade: Number(g), classNum: Number(c), number: Number(n), name, gender: normalizeGender(gender) });
     });
-    if (added.length > 0) {
-      setStudents([...students, ...added]);
-      setLastBulkAddedIds(added.map((s) => s.id));
+    if (parsed.length > 0) {
+      const result = applyIncoming(parsed);
       setBulkText("");
-      showToast(`${added.length}명을 일괄 추가했습니다.`, "ok");
+      showToast(summarizeMerge(result) || "이미 같은 명단이 등록돼 있어요.", "ok");
     } else {
       showToast("형식을 확인해 주세요. 예) 1,3,12,홍길동,남", "warn");
     }
@@ -1608,20 +1692,16 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
     const files = Array.from(fileList || []);
     if (files.length === 0) return;
     const results = await Promise.all(files.map(readFileAsStudents));
-    const allAdded = results.flatMap((r) => r.added);
+    const allParsed = results.flatMap((r) => r.added);
     const problemFiles = results.filter((r) => !r.ok || r.added.length === 0).map((r) => r.name);
 
-    if (allAdded.length > 0) {
-      setStudents([...students, ...allAdded]);
-      setLastBulkAddedIds(allAdded.map((s) => s.id));
-    }
-    if (allAdded.length > 0 && problemFiles.length === 0) {
-      showToast(
-        files.length > 1 ? `파일 ${files.length}개에서 총 ${allAdded.length}명을 불러왔습니다.` : `${allAdded.length}명을 엑셀 파일에서 불러왔습니다.`,
-        "ok"
-      );
-    } else if (allAdded.length > 0 && problemFiles.length > 0) {
-      showToast(`${allAdded.length}명을 불러왔습니다. (인식 실패: ${problemFiles.join(", ")})`, "warn");
+    if (allParsed.length > 0) {
+      const summary = summarizeMerge(applyIncoming(allParsed)) || "이미 같은 명단이 등록돼 있어요.";
+      if (problemFiles.length === 0) {
+        showToast(summary, "ok");
+      } else {
+        showToast(`${summary} (인식 실패: ${problemFiles.join(", ")})`, "warn");
+      }
     } else {
       showToast("엑셀 내용을 인식하지 못했습니다. 학년·반·번호·이름·성별 열을 확인해 주세요.", "warn");
     }
@@ -1706,6 +1786,9 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
           <span className="text-xs" style={{ color: "var(--ink-2)" }}>
             열 순서: 학년, 반, 번호, 이름, 성별 (.xlsx, .xls, .csv · 제목 줄 자동 인식)
           </span>
+          <span className="text-xs" style={{ color: "var(--ink-2)" }}>
+            같은 학년·반·번호는 중복으로 만들지 않고 기존 학생의 이름·성별만 갱신해요
+          </span>
         </label>
         <input
           id="roster-excel-file-input"
@@ -1716,9 +1799,9 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
           className="hidden"
           onChange={handleExcelFile}
         />
-        {lastBulkAddedIds && (
+        {lastBulk && (
           <div className="flex items-center justify-between mt-3 text-xs" style={{ color: "var(--ink-2)" }}>
-            <span>방금 {lastBulkAddedIds.length}명을 추가했습니다.</span>
+            <span>방금 올린 명단: {lastBulk.summary}</span>
             <button onClick={undoLastBulkAdd} className="flex items-center gap-1 font-medium underline">
               <RotateCcw size={12} /> 되돌리기
             </button>
@@ -3807,7 +3890,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             <div className="flex flex-col gap-3">
               {[
                 { n: 1, title: "코드 만들기", desc: "원하는 코드(예: 3반체육왕2026)와 비밀번호 두 개(개설자 전용 / 조회용)를 정해 새 코드를 만들어요. 이 코드로 어떤 기기에서든 같은 데이터를 이어서 관리해요." },
-                { n: 2, title: "명단 등록", desc: "'명단 관리' 탭에서 학생을 엑셀로 한 번에 올리거나 직접 추가해요. 이름은 이 기기에만 저장되니, 다른 기기에서 열 땐 그 기기에서 한 번 더 등록하거나 '이름표 가져오기'로 옮겨오세요." },
+                { n: 2, title: "명단 등록", desc: "'명단 관리' 탭에서 학생을 엑셀로 한 번에 올리거나 직접 추가해요(엑셀을 다시 올려도 같은 학년·반·번호는 중복되지 않아요). 이름은 이 기기에만 저장되니, 다른 기기에서 열 땐 그 기기에서 한 번 더 등록하거나 '이름표 가져오기'로 옮겨오세요." },
                 { n: 3, title: "경기 기록", desc: "'경기 기록' 탭에서 날짜·종목을 고르고 참가자를 체크해 결과를 입력해요. '전체 승/무/패' 버튼으로 한 팀 전체를 한 번에 처리하거나, '직접 입력'으로 특정 학생에게만 점수를 따로 줄 수도 있어요." },
                 { n: 4, title: "리더보드 공유", desc: "'리더보드' 탭이 자동으로 순위를 계산해요. 화면 위 '빔프로젝터 고정' 버튼을 누르면 리더보드만 크게 보이고 다른 조작이 잠기는 화면으로 바뀌어, 빔프로젝터나 모바일로 안전하게 띄워 보여줄 수 있어요. 되돌아오려면 개설자 비밀번호가 필요해요." },
               ].map((s) => (
