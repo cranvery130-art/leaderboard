@@ -257,6 +257,21 @@ function formatDateKorean(iso) {
   return d.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
 }
 
+// 화면 폭이 md(768px) 이상인지 — SVG 크기처럼 클래스로 못 바꾸는 값을 모바일/데스크톱에 맞출 때 씁니다.
+function useIsDesktop() {
+  const query = "(min-width: 768px)";
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.matchMedia && window.matchMedia(query).matches);
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia(query);
+    const onChange = () => setIsDesktop(mq.matches);
+    onChange();
+    mq.addEventListener ? mq.addEventListener("change", onChange) : mq.addListener(onChange);
+    return () => (mq.removeEventListener ? mq.removeEventListener("change", onChange) : mq.removeListener(onChange));
+  }, []);
+  return isDesktop;
+}
+
 function MedalIcon({ tier, size = 28, ribbon = false }) {
   const colors = {
     1: { ring: "#C9A227", fill: "#F3DA8E", glow: "#F3DA8E" },
@@ -482,7 +497,7 @@ function InfoModal({ title, icon: Icon, onClose, children }) {
         style={{ maxWidth: 620, maxHeight: "85vh", backgroundColor: "var(--surface)" }}
       >
         <div
-          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
+          className="flex items-center justify-between px-5 md:px-6 py-4 flex-shrink-0"
           style={{ background: "var(--bg)", borderBottom: "3px solid transparent", borderImage: "linear-gradient(100deg, #FF9570, #E48AC4, #9E86FF) 1" }}
         >
           <h2 className="lb-title text-xl flex items-center gap-2" style={{ color: "var(--ink)" }}>
@@ -493,7 +508,7 @@ function InfoModal({ title, icon: Icon, onClose, children }) {
             <X size={16} color="white" />
           </button>
         </div>
-        <div className="px-6 py-5 overflow-y-auto" style={{ flex: 1 }}>
+        <div className="px-5 md:px-6 py-5 overflow-y-auto" style={{ flex: 1 }}>
           {children}
         </div>
       </div>
@@ -539,6 +554,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
   const [unlockError, setUnlockError] = useState("");
   const [unlockBusy, setUnlockBusy] = useState(false);
   const skipFirstSave = useRef(true);
+  const isDesktop = useIsDesktop();
 
   function enterProjectorMode() {
     setProjectorLocked(true);
@@ -809,27 +825,26 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
       <div style={stageStyle} className="w-full">
         <style>{stageFonts}</style>
         <header
-          className="relative overflow-hidden"
+          className="relative overflow-hidden px-4 pt-6 pb-5 md:px-6 md:pt-11 md:pb-9"
           style={{
             background: "linear-gradient(135deg, #050B18, #14294D 60%, #0B1B33)",
-            padding: "2.75rem 1.5rem 2.25rem",
             borderBottom: "1px solid rgba(228,199,101,0.25)",
           }}
         >
           <div className="scoreboard-scan pointer-events-none absolute inset-0" />
-          <div className="relative max-w-5xl mx-auto flex items-center justify-center gap-2 mb-4">
+          <div className="relative max-w-5xl mx-auto flex items-center justify-center gap-2 mb-3 md:mb-4">
             <span className="live-pulse" style={{ width: 9, height: 9, borderRadius: "50%", backgroundColor: "#E14B5A" }} />
             <span className="lb-mono text-xs" style={{ color: "var(--accent-2)", letterSpacing: "0.35em" }}>
               LIVE SCOREBOARD
             </span>
           </div>
-          <div className="relative max-w-5xl mx-auto flex items-center justify-center gap-5">
-            <div className="crown-glow">
-              <TrophyEmblem size={72} />
+          <div className="relative max-w-5xl mx-auto flex items-center justify-center gap-3 md:gap-5">
+            <div className="crown-glow flex-shrink-0">
+              <TrophyEmblem size={isDesktop ? 72 : 48} />
             </div>
             <h1
-              className="lb-title text-center"
-              style={{ color: "var(--ink)", fontSize: "clamp(1.8rem, 4vw, 3rem)", textShadow: "0 0 30px rgba(228,199,101,0.35)" }}
+              className="lb-title text-center min-w-0"
+              style={{ color: "var(--ink)", fontSize: "clamp(1.4rem, 4vw, 3rem)", lineHeight: 1.15, textShadow: "0 0 30px rgba(228,199,101,0.35)" }}
             >
               {title}
             </h1>
@@ -905,33 +920,37 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
     <div style={stageStyle} className="w-full">
       <style>{stageFonts}</style>
 
-      <header style={{ background: "var(--bg)", borderBottom: "3px solid transparent", borderImage: "linear-gradient(100deg, #FF9570, #E48AC4, #9E86FF) 1", padding: "2rem 1.5rem 1.75rem" }}>
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 mb-1">
+      <header
+        className="px-4 pt-4 pb-3 md:px-6 md:pt-8 md:pb-7"
+        style={{ background: "var(--bg)", borderBottom: "3px solid transparent", borderImage: "linear-gradient(100deg, #FF9570, #E48AC4, #9E86FF) 1" }}
+      >
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 mb-3 md:mb-1">
           <span
-            className="lb-mono text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5"
+            className="lb-mono text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 min-w-0"
             style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "var(--accent)" }}
           >
-            <KeyRound size={12} /> {workspaceCode}
+            <KeyRound size={12} className="flex-shrink-0" />
+            <span className="truncate">{workspaceCode}</span>
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
             <button
               onClick={enterProjectorMode}
-              className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium"
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap"
               style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "var(--ink)", border: "1px solid rgba(255,255,255,0.22)" }}
             >
               <Projector size={13} /> 빔프로젝터 고정
             </button>
             <button
               onClick={() => setShowFeatureGuide(true)}
-              className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium"
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap"
               style={{ backgroundColor: "rgba(255,149,112,0.16)", color: "var(--accent)", border: "1px solid rgba(255,149,112,0.4)" }}
             >
               <HelpCircle size={13} /> 기능 설명
             </button>
           </div>
         </div>
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <TrophyEmblem size={56} />
+        <div className="max-w-4xl mx-auto flex items-start md:items-center gap-3 md:gap-4">
+          <TrophyEmblem size={isDesktop ? 56 : 44} />
           <div className="flex-1 min-w-0">
             {editingTitle ? (
               <div className="flex items-center gap-2">
@@ -946,7 +965,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                     }
                     if (e.key === "Escape") setEditingTitle(false);
                   }}
-                  className="lb-title text-2xl md:text-3xl bg-transparent border-b-2 outline-none w-full"
+                  className="lb-title text-xl md:text-3xl bg-transparent border-b-2 outline-none w-full min-w-0"
                   style={{ color: "var(--ink)", borderColor: "var(--accent)" }}
                 />
                 <button
@@ -966,21 +985,21 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                   setDraftTitle(title);
                   setEditingTitle(true);
                 }}
-                className="flex items-center gap-2 group text-left"
+                className="flex items-center gap-2 group text-left max-w-full"
               >
-                <h1 className="lb-title text-2xl md:text-3xl" style={{ color: "var(--ink)" }}>
+                <h1 className="lb-title text-xl md:text-3xl leading-tight" style={{ color: "var(--ink)" }}>
                   {title}
                 </h1>
-                <Pencil size={15} style={{ color: "var(--accent)" }} className="opacity-60 group-hover:opacity-100" />
+                <Pencil size={15} style={{ color: "var(--accent)" }} className="opacity-60 group-hover:opacity-100 flex-shrink-0" />
               </button>
             )}
-            <p className="text-sm mt-1.5 max-w-lg" style={{ color: "var(--accent-2)", lineHeight: 1.6 }}>
+            <p className="text-xs md:text-sm mt-1.5 max-w-lg" style={{ color: "var(--accent-2)", lineHeight: 1.6 }}>
               개인전과 팀전 점수를 모바일로 빠르게 기록하고, 전광판처럼 큰 화면에 띄워 실시간 순위를 보여주는 프로그램입니다.
             </p>
           </div>
         </div>
 
-        <nav className="max-w-4xl mx-auto flex gap-6 mt-6 border-b" style={{ borderColor: "rgba(255,255,255,0.12)" }}>
+        <nav className="max-w-4xl mx-auto grid grid-cols-4 md:flex md:gap-6 mt-4 md:mt-6 border-b" style={{ borderColor: "rgba(255,255,255,0.12)" }}>
           {[
             { id: "leaderboard", label: "리더보드", icon: Trophy },
             { id: "roster", label: "명단 관리", icon: Users },
@@ -990,7 +1009,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
             <button
               key={id}
               onClick={() => setTab(id)}
-              className="lb-tab-btn flex items-center gap-2 pb-3 text-sm font-medium"
+              className="lb-tab-btn flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 pb-2.5 md:pb-3 text-xs md:text-sm font-medium whitespace-nowrap"
               style={{
                 color: tab === id ? "var(--ink)" : "var(--ink-2)",
                 borderBottom: "2px solid transparent", borderImage: tab === id ? "linear-gradient(100deg, #FF9570, #E48AC4, #9E86FF) 1" : "none",
@@ -1005,7 +1024,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
 
       <Toast toast={toast} />
 
-      <main className="max-w-4xl mx-auto px-4 md:px-6 py-8">
+      <main className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-8">
         {role !== "founder" && (
           <div
             className="flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-md mb-4"
@@ -1205,6 +1224,7 @@ function EmptyState({ icon: Icon, title, body }) {
 }
 
 function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
+  const isDesktop = useIsDesktop();
   if (students.length === 0) {
     return <EmptyState icon={Users} title="명단부터 등록해 주세요" body="리더보드는 등록된 학생과 경기 기록을 바탕으로 계산됩니다." />;
   }
@@ -1214,7 +1234,7 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
     );
   }
 
-  const heights = { center: "h-48", left: "h-32", right: "h-28" };
+  const heights = { center: "h-32 md:h-48", left: "h-20 md:h-32", right: "h-16 md:h-28" };
   const stars = [
     { x: "8%", y: "20%", size: 4, delay: "0s" },
     { x: "18%", y: "58%", size: 3, delay: "0.6s" },
@@ -1228,7 +1248,7 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
   return (
     <div>
       <div
-        className="relative overflow-hidden rounded-2xl mb-10 px-4 pt-10 pb-0"
+        className="relative overflow-hidden rounded-2xl mb-6 md:mb-10 px-3 md:px-4 pt-7 md:pt-10 pb-0"
         style={{ background: "linear-gradient(160deg, var(--surface), var(--bg) 70%)" }}
       >
         <svg
@@ -1257,22 +1277,22 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
           />
         ))}
 
-        <div className="relative flex items-end justify-center gap-3 md:gap-6">
+        <div className="relative flex items-end justify-center gap-2 md:gap-6">
           {podiumOrder.map((g, idx) => (
             <div
               key={g.slot}
-              className="podium-pop flex flex-col items-center"
-              style={{ width: 140, animationDelay: `${idx * 0.12}s` }}
+              className="podium-pop flex flex-col items-center min-w-0"
+              style={{ flex: "1 1 0", maxWidth: 140, animationDelay: `${idx * 0.12}s` }}
             >
               {g.rank === 1 && (
-                <Crown size={26} style={{ color: "var(--gold-300)", marginBottom: -4 }} fill="var(--gold-300)" />
+                <Crown size={isDesktop ? 26 : 22} style={{ color: "var(--gold-300)", marginBottom: -4 }} fill="var(--gold-300)" />
               )}
-              <MedalIcon tier={g.rank} size={g.rank === 1 ? 50 : 40} ribbon />
-              <div className="mt-3 text-center px-1">
+              <MedalIcon tier={g.rank} size={g.rank === 1 ? (isDesktop ? 50 : 40) : isDesktop ? 40 : 32} ribbon />
+              <div className="mt-2 md:mt-3 text-center px-1 w-full">
                 {g.rows.map((r) => (
                   <div
                     key={r.student.id}
-                    className={g.rank === 1 ? "font-semibold text-base leading-snug" : "font-medium text-sm leading-snug"}
+                    className={g.rank === 1 ? "font-semibold text-sm md:text-base leading-snug truncate" : "font-medium text-xs md:text-sm leading-snug truncate"}
                     style={{ color: "var(--ink)" }}
                   >
                     {displayName(r.student)}
@@ -1280,7 +1300,7 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
                 ))}
               </div>
               <div
-                className={`lb-mono font-bold mt-1 ${g.rank === 1 ? "text-2xl" : "text-lg"}`}
+                className={`lb-mono font-bold mt-1 ${g.rank === 1 ? "text-xl md:text-2xl" : "text-base md:text-lg"}`}
                 style={{
                   color: "var(--gold-300)",
                   textShadow: g.rank === 1 ? "0 0 18px rgba(228,199,101,0.7)" : "none",
@@ -1292,7 +1312,7 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
                 </span>
               </div>
               <div
-                className={`${heights[g.slot]} platform-shine w-full mt-3 rounded-t-lg flex items-start justify-center pt-2`}
+                className={`${heights[g.slot]} platform-shine w-full mt-2 md:mt-3 rounded-t-lg flex items-start justify-center pt-2`}
                 style={{
                   background:
                     g.rank === 1
@@ -1303,7 +1323,7 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
                   boxShadow: g.rank === 1 ? "0 8px 24px rgba(201,162,39,0.45)" : "0 6px 16px rgba(11,27,51,0.25)",
                 }}
               >
-                <span className="lb-mono text-white font-bold opacity-95" style={{ fontSize: g.rank === 1 ? 28 : 22 }}>
+                <span className="lb-mono text-white font-bold opacity-95" style={{ fontSize: g.rank === 1 ? (isDesktop ? 28 : 22) : isDesktop ? 22 : 18 }}>
                   {g.rank}
                 </span>
               </div>
@@ -1314,8 +1334,8 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
 
       <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--line)" }}>
         <div
-          className="grid text-xs font-medium px-4 py-2"
-          style={{ gridTemplateColumns: "48px 1fr 90px 90px", backgroundColor: "var(--surface-2)", color: "var(--ink-2)" }}
+          className="rank-grid grid text-xs font-medium px-3 md:px-4 py-2"
+          style={{ backgroundColor: "var(--surface-2)", color: "var(--ink-2)" }}
         >
           <span>순위</span>
           <span>이름</span>
@@ -1328,9 +1348,8 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
             return (
               <div
                 key={row.student.id}
-                className="grid items-center px-4 py-2.5 text-sm"
+                className="rank-grid grid items-center px-3 md:px-4 py-2.5 text-sm"
                 style={{
-                  gridTemplateColumns: "48px 1fr 90px 90px",
                   borderTop: "1px solid var(--line)",
                   borderLeft: `3px solid ${accent}`,
                   backgroundColor: g.rank <= 3 ? "var(--bg)" : "transparent",
@@ -1345,13 +1364,13 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
                     </span>
                   )}
                 </span>
-                <span className="flex flex-col">
-                  <span className="font-medium">{displayName(row.student)}</span>
+                <span className="flex flex-col min-w-0">
+                  <span className="font-medium truncate">{displayName(row.student)}</span>
                   <span className="text-xs" style={{ color: "var(--ink-2)" }}>
                     {row.student.grade}학년 {row.student.classNum}반 {row.student.number}번
                   </span>
                   {row.history.length > 0 && (
-                    <span className="flex gap-1 mt-1">
+                    <span className="flex flex-wrap gap-1 mt-1">
                       {row.history.map((h, i) => (
                         <span
                           key={i}
@@ -1362,7 +1381,7 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
                     </span>
                   )}
                 </span>
-                <span className="text-right" style={{ color: "var(--ink-2)" }}>
+                <span className="text-right text-xs md:text-sm" style={{ color: "var(--ink-2)" }}>
                   {row.played}경기
                 </span>
                 <span className="lb-mono text-right font-semibold" style={{ color: "var(--ink)" }}>
@@ -1378,6 +1397,7 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
 }
 
 function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
+  const isDesktop = useIsDesktop();
   if (students.length === 0) {
     return <EmptyState icon={Users} title="명단부터 등록해 주세요" body="리더보드는 등록된 학생과 경기 기록을 바탕으로 계산됩니다." />;
   }
@@ -1385,7 +1405,7 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
     return <EmptyState icon={CalendarDays} title="아직 등록된 경기 결과가 없어요" body="경기 기록 탭에서 첫 경기를 등록하면 순위가 나타납니다." />;
   }
 
-  const heights = { center: "h-56 md:h-72", left: "h-40 md:h-52", right: "h-32 md:h-44" };
+  const heights = { center: "h-36 md:h-72", left: "h-24 md:h-52", right: "h-20 md:h-44" };
   const rays = Array.from({ length: 24 });
   const sparks = [
     { x: "6%", y: "15%", size: 3, delay: "0s" },
@@ -1419,29 +1439,29 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
         />
       ))}
 
-      <div className="relative max-w-6xl mx-auto px-6 pt-12 pb-16">
-        <div className="relative flex items-end justify-center gap-6 md:gap-14 mb-16 flex-wrap">
+      <div className="relative max-w-6xl mx-auto px-3 pt-8 pb-20 md:px-6 md:pt-12 md:pb-16">
+        <div className="relative flex items-end justify-center gap-2 md:gap-14 mb-8 md:mb-16">
           {podiumOrder.map((g, idx) => (
             <div
               key={g.slot}
-              className="podium-pop flex flex-col items-center"
-              style={{ width: g.slot === "center" ? 220 : 170, animationDelay: `${idx * 0.15}s` }}
+              className="podium-pop flex flex-col items-center min-w-0"
+              style={{ flex: g.slot === "center" ? "1.2 1 0" : "1 1 0", maxWidth: g.slot === "center" ? 220 : 170, animationDelay: `${idx * 0.15}s` }}
             >
               {g.rank === 1 && (
                 <div className="crown-glow mb-1">
-                  <Crown size={40} style={{ color: "#F3DA8E" }} fill="#F3DA8E" />
+                  <Crown size={isDesktop ? 40 : 26} style={{ color: "#F3DA8E" }} fill="#F3DA8E" />
                 </div>
               )}
               <div className="relative">
                 {g.rank === 1 && <div className="medal-ring" />}
-                <MedalIcon tier={g.rank} size={g.rank === 1 ? 84 : 60} ribbon />
+                <MedalIcon tier={g.rank} size={g.rank === 1 ? (isDesktop ? 84 : 50) : isDesktop ? 60 : 38} ribbon />
               </div>
-              <div className="mt-4 text-center px-1">
+              <div className="mt-3 md:mt-4 text-center px-1 w-full">
                 {g.rows.map((r) => (
                   <div
                     key={r.student.id}
-                    className={g.rank === 1 ? "font-bold leading-snug" : "font-semibold leading-snug"}
-                    style={{ color: "var(--ink)", fontSize: g.rank === 1 ? 26 : 19 }}
+                    className={g.rank === 1 ? "font-bold leading-snug truncate" : "font-semibold leading-snug truncate"}
+                    style={{ color: "var(--ink)", fontSize: g.rank === 1 ? (isDesktop ? 26 : 17) : isDesktop ? 19 : 14 }}
                   >
                     {displayName(r.student)}
                   </div>
@@ -1449,13 +1469,13 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
               </div>
               <div
                 className={`lb-mono font-bold mt-2 score-glow-${g.rank}`}
-                style={{ color: "#F3DA8E", fontSize: g.rank === 1 ? 44 : 30 }}
+                style={{ color: "#F3DA8E", fontSize: g.rank === 1 ? (isDesktop ? 44 : 30) : isDesktop ? 30 : 22 }}
               >
                 {g.total}
-                <span style={{ fontSize: g.rank === 1 ? 16 : 13, fontWeight: 500, color: "rgba(251,248,240,0.6)" }}> 점</span>
+                <span style={{ fontSize: g.rank === 1 ? (isDesktop ? 16 : 13) : 12, fontWeight: 500, color: "rgba(251,248,240,0.6)" }}> 점</span>
               </div>
               <div
-                className={`${heights[g.slot]} platform-shine w-full mt-4 rounded-t-xl flex items-start justify-center pt-4 relative`}
+                className={`${heights[g.slot]} platform-shine w-full mt-3 md:mt-4 rounded-t-xl flex items-start justify-center pt-2 md:pt-4 relative`}
                 style={{
                   background:
                     g.rank === 1
@@ -1466,7 +1486,7 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
                   boxShadow: g.rank === 1 ? "0 0 60px rgba(243,218,142,0.5), 0 10px 30px rgba(0,0,0,0.4)" : "0 10px 24px rgba(0,0,0,0.35)",
                 }}
               >
-                <span className="lb-mono text-white font-bold" style={{ fontSize: g.rank === 1 ? 46 : 34, textShadow: "0 2px 6px rgba(0,0,0,0.35)" }}>
+                <span className="lb-mono text-white font-bold" style={{ fontSize: g.rank === 1 ? (isDesktop ? 46 : 30) : isDesktop ? 34 : 22, textShadow: "0 2px 6px rgba(0,0,0,0.35)" }}>
                   {g.rank}
                 </span>
               </div>
@@ -1479,8 +1499,8 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
           style={{ border: "1px solid rgba(228,199,101,0.25)", backgroundColor: "rgba(5,11,24,0.55)" }}
         >
           <div
-            className="grid text-xs font-semibold px-6 py-3"
-            style={{ gridTemplateColumns: "70px 1fr 110px 110px", backgroundColor: "rgba(228,199,101,0.08)", color: "#E4C765", letterSpacing: "0.08em" }}
+            className="stage-rank-grid grid text-xs font-semibold px-3 md:px-6 py-3"
+            style={{ backgroundColor: "rgba(228,199,101,0.08)", color: "#E4C765", letterSpacing: "0.08em" }}
           >
             <span>순위</span>
             <span>이름</span>
@@ -1493,9 +1513,8 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
               return (
                 <div
                   key={row.student.id}
-                  className="grid items-center px-6 py-3.5"
+                  className="stage-rank-grid grid items-center px-3 md:px-6 py-3 md:py-3.5"
                   style={{
-                    gridTemplateColumns: "70px 1fr 110px 110px",
                     borderTop: "1px solid rgba(228,199,101,0.12)",
                     borderLeft: `4px solid ${accent}`,
                     backgroundColor: g.rank <= 3 ? "rgba(228,199,101,0.06)" : "transparent",
@@ -1503,22 +1522,22 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
                 >
                   <span className="flex items-center">
                     {g.rank <= 3 ? (
-                      <MedalIcon tier={g.rank} size={30} />
+                      <MedalIcon tier={g.rank} size={isDesktop ? 30 : 24} />
                     ) : (
-                      <span className="lb-mono font-bold" style={{ color: "rgba(251,248,240,0.55)", fontSize: 20 }}>
+                      <span className="lb-mono font-bold" style={{ color: "rgba(251,248,240,0.55)", fontSize: isDesktop ? 20 : 16 }}>
                         {g.rank}
                       </span>
                     )}
                   </span>
-                  <span className="flex flex-col">
-                    <span className="font-semibold" style={{ color: "var(--ink)", fontSize: 17 }}>
+                  <span className="flex flex-col min-w-0">
+                    <span className="font-semibold truncate" style={{ color: "var(--ink)", fontSize: isDesktop ? 17 : 15 }}>
                       {displayName(row.student)}
                     </span>
                     <span className="text-xs mt-0.5" style={{ color: "rgba(251,248,240,0.5)" }}>
                       {row.student.grade}학년 {row.student.classNum}반 {row.student.number}번
                     </span>
                     {row.history.length > 0 && (
-                      <span className="flex gap-1 mt-1.5">
+                      <span className="flex flex-wrap gap-1 mt-1.5">
                         {row.history.map((h, i) => (
                           <span
                             key={i}
@@ -1529,10 +1548,10 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
                       </span>
                     )}
                   </span>
-                  <span className="text-right lb-mono" style={{ color: "rgba(251,248,240,0.55)", fontSize: 16 }}>
+                  <span className="text-right lb-mono" style={{ color: "rgba(251,248,240,0.55)", fontSize: isDesktop ? 16 : 12 }}>
                     {row.played}경기
                   </span>
-                  <span className="lb-mono text-right font-bold" style={{ color: "#F3DA8E", fontSize: 22 }}>
+                  <span className="lb-mono text-right font-bold" style={{ color: "#F3DA8E", fontSize: isDesktop ? 22 : 18 }}>
                     {row.total}
                   </span>
                 </div>
@@ -1748,10 +1767,10 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
           .sort((a, b) => a.grade - b.grade || a.classNum - b.classNum || a.number - b.number)
           .map((s, i) => (
             <div key={s.id} className="flex items-center gap-3 px-4 py-2.5 text-sm" style={{ borderTop: i === 0 ? "none" : "1px solid var(--line)" }}>
-              <span className="lb-mono text-xs" style={{ color: "var(--ink-2)", width: 56 }}>
+              <span className="lb-mono text-xs flex-shrink-0" style={{ color: "var(--ink-2)", width: 52 }}>
                 {s.grade}-{s.classNum}-{s.number}
               </span>
-              <span className="font-medium flex-1">{displayName(s)}</span>
+              <span className="font-medium flex-1 min-w-0 truncate">{displayName(s)}</span>
               <span className="text-xs" style={{ color: "var(--ink-2)" }}>
                 {s.gender === "M" ? "남" : "여"}
               </span>
@@ -1962,7 +1981,7 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
           <span className="text-xs" style={{ color: "var(--ink-2)" }}>
             {selected.size}명 선택됨
           </span>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             <button disabled={selected.size === 0} onClick={() => bulkSetGender("M")} className="text-xs px-2 py-1 rounded-md" style={{ border: "1px solid var(--line)", opacity: selected.size === 0 ? 0.4 : 1 }}>
               남학생으로 변경
             </button>
@@ -1993,7 +2012,7 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
               style={{ borderTop: i === 0 ? "none" : "1px solid var(--line)" }}
             >
               <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleSelect(s.id)} />
-              <span className="lb-mono text-xs" style={{ color: "var(--ink-2)", width: 56 }}>
+              <span className="lb-mono text-xs flex-shrink-0" style={{ color: "var(--ink-2)", width: 52 }}>
                 {s.grade}-{s.classNum}-{s.number}
               </span>
               <input
@@ -2004,11 +2023,11 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
                   if (v !== s.name) setStudents(students.map((st) => (st.id === s.id ? { ...st, name: v } : st)));
                 }}
                 placeholder="이름 (이 기기에만 저장)"
-                className="font-medium flex-1 px-1.5 py-0.5 rounded outline-none"
+                className="font-medium flex-1 min-w-0 px-1.5 py-0.5 rounded outline-none"
                 style={{ border: "1px solid transparent" }}
                 onFocus={(e) => (e.target.style.border = "1px solid var(--line)")}
               />
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-shrink-0">
                 {GENDERS.map((g) => (
                   <button
                     key={g.id}
@@ -2023,7 +2042,7 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
                   </button>
                 ))}
               </div>
-              <button onClick={() => removeStudent(s.id)} className="p-1 rounded-md hover:opacity-70">
+              <button onClick={() => removeStudent(s.id)} className="p-1 rounded-md hover:opacity-70 flex-shrink-0">
                 <Trash2 size={14} style={{ color: "var(--danger)" }} />
               </button>
             </div>
@@ -2268,7 +2287,7 @@ function MatchesTab({
           <div className="flex flex-col gap-3">
             {sortedMatches.map((m) => (
               <div key={m.id} className="rounded-lg p-4" style={{ border: "1px solid var(--line)", backgroundColor: "var(--surface)" }}>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center flex-wrap gap-2 mb-3">
                   <span className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md" style={{ backgroundColor: "var(--surface-2)", color: "var(--ink)" }}>
                     <CalendarDays size={12} />
                     {formatDateKorean(m.date)}
@@ -2353,13 +2372,20 @@ function MatchesTab({
           <div>
             <div className="rounded-md overflow-hidden mb-2" style={{ border: "1px solid var(--line)" }}>
               <div
-                className="grid text-xs font-medium px-3 py-2"
-                style={{ gridTemplateColumns: "1fr repeat(4, 64px) 32px", backgroundColor: "var(--surface-2)", color: "var(--ink-2)" }}
+                className="event-points-grid grid text-xs font-medium px-2 md:px-3 py-2"
+                style={{ backgroundColor: "var(--surface-2)", color: "var(--ink-2)" }}
               >
                 <span>종목</span>
                 {Object.keys(RESULT_LABELS).map((key) => (
-                  <span key={key} className="text-center">
-                    {RESULT_LABELS[key]}
+                  <span key={key} className="text-center whitespace-nowrap">
+                    {key === "foul" ? (
+                      <>
+                        <span className="md:hidden">부정</span>
+                        <span className="hidden md:inline">{RESULT_LABELS[key]}</span>
+                      </>
+                    ) : (
+                      RESULT_LABELS[key]
+                    )}
                   </span>
                 ))}
                 <span />
@@ -2372,14 +2398,14 @@ function MatchesTab({
               {events.map((ev, i) => (
                 <div
                   key={ev.id}
-                  className="grid items-center px-3 py-1.5 text-sm"
-                  style={{ gridTemplateColumns: "1fr repeat(4, 64px) 32px", borderTop: i === 0 ? "none" : "1px solid var(--line)" }}
+                  className="event-points-grid grid items-center px-2 md:px-3 py-1.5 text-sm"
+                  style={{ borderTop: i === 0 ? "none" : "1px solid var(--line)" }}
                 >
                   <input
                     value={ev.name}
                     onChange={(e) => updateEventField(ev.id, "name", e.target.value)}
                     placeholder="종목명 (예: 축구)"
-                    className="text-sm rounded-md outline-none px-1.5 py-1 mr-1"
+                    className="text-sm rounded-md outline-none px-1.5 py-1 mr-1 min-w-0"
                     style={inputStyle}
                   />
                   {Object.keys(RESULT_LABELS).map((key) => (
@@ -2388,7 +2414,7 @@ function MatchesTab({
                       type="number"
                       value={ev[key]}
                       onChange={(e) => updateEventField(ev.id, key, Number(e.target.value))}
-                      className="lb-mono text-sm text-center rounded-md outline-none mx-1"
+                      className="lb-mono text-sm text-center rounded-md outline-none mx-0.5 md:mx-1 min-w-0"
                       style={{ ...inputStyle, padding: "4px 2px" }}
                     />
                   ))}
@@ -2413,7 +2439,7 @@ function MatchesTab({
         className="rounded-lg p-4 mb-8"
         style={{ border: editingMatchId ? "1px solid var(--accent)" : "1px solid var(--line)", backgroundColor: "var(--surface)" }}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
           <h3 className="lb-title text-lg" style={{ color: "var(--ink)" }}>
             {editingMatchId ? "경기 수정" : "새 경기 등록"}
           </h3>
@@ -2482,7 +2508,7 @@ function MatchesTab({
               <label className="block text-xs font-medium" style={{ color: "var(--ink-2)" }}>
                 참가자 체크 후 결과 선택
               </label>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-x-3 gap-y-2">
                 <FilterChips
                   label="학년"
                   value={filterGrade}
@@ -2539,7 +2565,7 @@ function MatchesTab({
               className="flex flex-wrap items-center gap-2 mb-2 px-2 py-2 rounded-md"
               style={{ backgroundColor: "var(--surface-2)" }}
             >
-              <span className="text-xs font-medium" style={{ color: "var(--ink)" }}>
+              <span className="text-xs font-medium w-full md:w-auto" style={{ color: "var(--ink)" }}>
                 체크된 학생에게 결과 일괄 적용:
               </span>
               <select
@@ -2588,15 +2614,15 @@ function MatchesTab({
                   style={{ borderTop: i === 0 ? "none" : "1px solid var(--line)" }}
                 >
                   <input type="checkbox" checked={!!checked[s.id]} onChange={() => toggleChecked(s.id)} />
-                  <span className="lb-mono text-xs" style={{ color: "var(--ink-2)", width: 56 }}>
+                  <span className="lb-mono text-xs flex-shrink-0" style={{ color: "var(--ink-2)", width: 52 }}>
                     {s.grade}-{s.classNum}-{s.number}
                   </span>
-                  <span className="flex-1">{displayName(s)}</span>
+                  <span className="flex-1 min-w-0 truncate">{displayName(s)}</span>
                   <select
                     value={resultFor[s.id] || "win"}
                     onChange={(e) => setResult(s.id, e.target.value)}
                     disabled={!checked[s.id]}
-                    className="px-2 py-1 rounded-md text-sm outline-none font-medium"
+                    className="px-2 py-1 rounded-md text-sm outline-none font-medium flex-shrink-0"
                     style={{
                       ...inputStyle,
                       backgroundColor: RESULT_COLORS[resultFor[s.id] || "win"].bg,
@@ -2624,8 +2650,8 @@ function MatchesTab({
                       onChange={(e) => setCustomPoints(s.id, e.target.value)}
                       disabled={!checked[s.id]}
                       placeholder="점수"
-                      className="lb-mono text-sm text-center rounded-md outline-none"
-                      style={{ ...inputStyle, width: 64, opacity: checked[s.id] ? 1 : 0.4 }}
+                      className="lb-mono text-sm text-center rounded-md outline-none flex-shrink-0"
+                      style={{ ...inputStyle, width: 56, opacity: checked[s.id] ? 1 : 0.4 }}
                     />
                   )}
                 </div>
@@ -2641,11 +2667,11 @@ function MatchesTab({
         )}
 
         <div className="flex gap-2 mt-4">
-          <button onClick={handleSubmit} className="px-4 py-2 rounded-md text-sm font-medium" style={{ backgroundColor: "var(--ink)", color: "var(--bg)" }}>
+          <button onClick={handleSubmit} className="flex-1 md:flex-none px-4 py-2.5 md:py-2 rounded-md text-sm font-medium" style={{ backgroundColor: "var(--ink)", color: "var(--bg)" }}>
             {editingMatchId ? "수정 저장" : "경기 등록"}
           </button>
           {editingMatchId && (
-            <button onClick={cancelEdit} className="px-4 py-2 rounded-md text-sm font-medium" style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>
+            <button onClick={cancelEdit} className="flex-1 md:flex-none px-4 py-2.5 md:py-2 rounded-md text-sm font-medium" style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>
               취소
             </button>
           )}
@@ -2663,15 +2689,15 @@ function MatchesTab({
         <div className="flex flex-col gap-3">
           {sortedMatches.map((m) => (
             <div key={m.id} className="rounded-lg p-4" style={{ border: "1px solid var(--line)", backgroundColor: "var(--surface)" }}>
-              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <div className="flex items-center flex-wrap gap-2 min-w-0">
                   <span className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md" style={{ backgroundColor: "var(--surface-2)", color: "var(--ink)" }}>
                     <CalendarDays size={12} />
                     {formatDateKorean(m.date)}
                   </span>
                   <span className="text-sm font-medium">{m.event}</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <button onClick={() => startEdit(m)} className="p-1.5 rounded-md hover:opacity-70">
                     <Pencil size={15} style={{ color: "var(--ink)" }} />
                   </button>
@@ -2932,12 +2958,12 @@ function SettingsTab({
           </span>
         </div>
         <div className="flex items-center gap-2 mb-3">
-          <span className="lb-mono text-lg font-semibold px-3 py-2 rounded-md flex-1" style={{ backgroundColor: "var(--surface-2)", color: "var(--ink)" }}>
+          <span className="lb-mono text-base md:text-lg font-semibold px-3 py-2 rounded-md flex-1 min-w-0 truncate" style={{ backgroundColor: "var(--surface-2)", color: "var(--ink)" }}>
             {workspaceCode}
           </span>
           <button
             onClick={copyCode}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0"
             style={{ border: "1px solid var(--line)", color: "var(--ink)" }}
           >
             <Copy size={14} /> {copied ? "복사됨" : "복사"}
@@ -3246,12 +3272,12 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
               type={showFounderPw ? "text" : "password"}
               value={founderPwDraft}
               onChange={(e) => setFounderPwDraft(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-md text-sm outline-none"
+              className="flex-1 min-w-0 px-3 py-2 rounded-md text-sm outline-none"
               style={inputStyle}
             />
             <button
               onClick={() => setShowFounderPw((v) => !v)}
-              className="px-2 py-1 rounded-md text-xs"
+              className="px-3 py-1 rounded-md text-xs whitespace-nowrap flex-shrink-0"
               style={{ border: "1px solid var(--line)", color: "var(--ink-2)" }}
             >
               {showFounderPw ? "숨기기" : "보기"}
@@ -3279,9 +3305,11 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
         ) : (
           <div className="flex flex-col gap-1.5">
             {pending.map((r) => (
-              <div key={r.id} className="flex items-center justify-between px-3 py-2 rounded-md text-sm" style={{ backgroundColor: "var(--surface-2)" }}>
-                <span>{r.name} · 수정 권한 신청</span>
-                <div className="flex gap-1.5">
+              <div key={r.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm" style={{ backgroundColor: "var(--surface-2)" }}>
+                <span className="min-w-0">
+                  {r.name} <span style={{ color: "var(--ink-2)" }}>· 수정 권한 신청</span>
+                </span>
+                <div className="flex gap-1.5 flex-shrink-0">
                   <button onClick={() => decide(r.id, "approved")} className="text-xs px-2.5 py-1 rounded-md font-medium" style={{ backgroundColor: "var(--ink)", color: "var(--bg)" }}>
                     승인
                   </button>
@@ -3306,11 +3334,11 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
         ) : (
           <div className="flex flex-col gap-1.5">
             {approved.map((r) => (
-              <div key={r.id} className="flex items-center justify-between px-3 py-2 rounded-md text-sm" style={{ backgroundColor: "var(--surface-2)" }}>
-                <span>
-                  {r.name} · {r.type === "editor" ? "수정 권한" : "조회 전용"}
+              <div key={r.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm" style={{ backgroundColor: "var(--surface-2)" }}>
+                <span className="min-w-0">
+                  {r.name} <span style={{ color: "var(--ink-2)" }}>· {r.type === "editor" ? "수정 권한" : "조회 전용"}</span>
                 </span>
-                <button onClick={() => revoke(r.id)} className="text-xs px-2.5 py-1 rounded-md font-medium" style={{ color: "var(--danger)", border: "1px solid var(--line)" }}>
+                <button onClick={() => revoke(r.id)} className="text-xs px-2.5 py-1 rounded-md font-medium whitespace-nowrap flex-shrink-0" style={{ color: "var(--danger)", border: "1px solid var(--line)" }}>
                   권한 취소
                 </button>
               </div>
@@ -3597,9 +3625,9 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
 
   if (mode === "notice") {
     return (
-      <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-16">
+      <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-8 md:py-16">
         <style>{`.lb-title { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 900; letter-spacing: -0.03em; } input:not([type=checkbox]):not([type=file]), select, textarea { background-color: var(--surface-2); color: var(--ink); border-color: var(--line); font-family: 'IBM Plex Sans KR', sans-serif; }`}</style>
-        <div className="w-full rounded-2xl p-8" style={{ maxWidth: 440, backgroundColor: "var(--surface)" }}>
+        <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 440, backgroundColor: "var(--surface)" }}>
           <h2 className="lb-title text-xl mb-3" style={{ color: "var(--ink)" }}>
             접근 신청 안내
           </h2>
@@ -3632,9 +3660,9 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
 
   if (mode === "form") {
     return (
-      <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-16">
+      <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-8 md:py-16">
         <style>{`.lb-title { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 900; letter-spacing: -0.03em; } .lb-mono { font-family: 'JetBrains Mono', monospace; } input:not([type=checkbox]):not([type=file]), select, textarea { background-color: var(--surface-2); color: var(--ink); border-color: var(--line); font-family: 'IBM Plex Sans KR', sans-serif; }`}</style>
-        <div className="w-full rounded-2xl p-8" style={{ maxWidth: 420, backgroundColor: "var(--surface)" }}>
+        <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 420, backgroundColor: "var(--surface)" }}>
           <h2 className="lb-title text-xl mb-1" style={{ color: "var(--ink)" }}>
             접근 신청
           </h2>
@@ -3694,14 +3722,14 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
   }
 
   return (
-    <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-16">
+    <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-8 md:py-16">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700..900;1,700..900&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
         .lb-title { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 900; letter-spacing: -0.03em; }
         .lb-mono { font-family: 'JetBrains Mono', monospace; }
         input:not([type=checkbox]):not([type=file]), select, textarea { background-color: var(--surface-2); color: var(--ink); border-color: var(--line); font-family: 'IBM Plex Sans KR', sans-serif; }
       `}</style>
-      <div className="w-full rounded-2xl p-8" style={{ maxWidth: 420, backgroundColor: "var(--surface)" }}>
+      <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 420, backgroundColor: "var(--surface)" }}>
         <div className="flex justify-center mb-3">
           <TrophyEmblem size={64} />
         </div>
@@ -3723,7 +3751,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
 
         <button
           onClick={() => setShowGuide(true)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold mb-6"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold mb-6 whitespace-nowrap"
           style={{
             background: "var(--grad)",
             color: "var(--ink)",
@@ -3763,10 +3791,10 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && value.trim()) handleLogin();
                 }}
-                className="flex-1 px-3 py-2.5 rounded-md text-sm outline-none"
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-md text-sm outline-none"
                 style={inputStyle}
               />
-              <button onClick={() => setShowFounderPassword((v) => !v)} className="px-3 rounded-md text-xs" style={{ border: "1px solid var(--line)", color: "var(--ink-2)" }}>
+              <button onClick={() => setShowFounderPassword((v) => !v)} className="px-3 rounded-md text-xs whitespace-nowrap flex-shrink-0" style={{ border: "1px solid var(--line)", color: "var(--ink-2)" }}>
                 {showFounderPassword ? "숨기기" : "보기"}
               </button>
             </div>
@@ -3826,10 +3854,10 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && value.trim()) handleCreate();
                 }}
-                className="flex-1 px-3 py-2.5 rounded-md text-sm outline-none"
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-md text-sm outline-none"
                 style={inputStyle}
               />
-              <button onClick={() => setShowFounderPasswordNew((v) => !v)} className="px-3 rounded-md text-xs" style={{ border: "1px solid var(--line)", color: "var(--ink-2)" }}>
+              <button onClick={() => setShowFounderPasswordNew((v) => !v)} className="px-3 rounded-md text-xs whitespace-nowrap flex-shrink-0" style={{ border: "1px solid var(--line)", color: "var(--ink-2)" }}>
                 {showFounderPasswordNew ? "숨기기" : "보기"}
               </button>
             </div>
