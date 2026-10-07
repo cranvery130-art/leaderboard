@@ -34,5 +34,5 @@ Vercel 프로젝트 설정 > Environment Variables에 .env.example과 동일한 
 
 ## 앱 아이콘 (크롬 바로가기)
 `public/`의 `favicon.svg`, `icons/*.png`, `apple-touch-icon.png`와 `manifest.webmanifest`가 크롬
-"바로가기 만들기"/앱 설치 시 쓰이는 아이콘입니다. 현재 적용된 시안은 **골드 트로피**이며,
+"바로가기 만들기"/앱 설치 시 쓰이는 아이콘입니다. 현재 적용된 시안은 **골드 트로피(코랄→보라 그라데이션 테두리)**이며,
 다른 시안(시상대·메달·왕관)의 원본 SVG는 `design/icon-options/`에 있습니다.
