@@ -5,6 +5,54 @@
 html, body, #root {
   height: 100%;
 }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body {
   margin: 0;
+  background-color: #0A0B0D;
+  -webkit-tap-highlight-color: transparent;
+}
+/* 한글이 글자 단위로 끊기지 않도록 어절 단위 줄바꿈 */
+#root {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: #FF9570;
+}
+
+/* 순위표 열 폭 — 모바일은 좁게, 데스크톱은 기존 폭 */
+.rank-grid {
+  grid-template-columns: 36px minmax(0, 1fr) 56px 44px;
+}
+.stage-rank-grid {
+  grid-template-columns: 40px minmax(0, 1fr) 60px 48px;
+}
+.event-points-grid {
+  grid-template-columns: minmax(0, 1fr) repeat(4, 40px) 26px;
+}
+@media (min-width: 768px) {
+  .rank-grid {
+    grid-template-columns: 48px minmax(0, 1fr) 90px 90px;
+  }
+  .stage-rank-grid {
+    grid-template-columns: 70px minmax(0, 1fr) 110px 110px;
+  }
+  .event-points-grid {
+    grid-template-columns: minmax(0, 1fr) repeat(4, 64px) 32px;
+  }
+}
+
+/* iOS 사파리는 16px 미만 입력창에 포커스하면 화면을 확대하므로 모바일에선 16px로 */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not(.lb-title),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
