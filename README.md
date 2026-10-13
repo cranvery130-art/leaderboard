@@ -1,6 +1,6 @@
-# 체육행사 승점 대시보드 (League Leaderboard)
+# 스코어 대시보드 (P.E Score Leaderboard)
 
-React + Vite + Firebase(Firestore) 기반 학교스포츠클럽 리그전 승점 대시보드.
+React + Vite + Firebase(Firestore) 기반 체육행사·학교스포츠클럽 승점 대시보드. (예전 이름: 체육행사 승점 대시보드)
 
 ## 로컬 실행
 ```
