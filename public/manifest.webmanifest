@@ -1,6 +1,6 @@
 {
-  "name": "체육행사 승점 대시보드",
-  "short_name": "승점 대시보드",
+  "name": "스코어 대시보드",
+  "short_name": "스코어 대시보드",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
