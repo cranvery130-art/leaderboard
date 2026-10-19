@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from "react";
 import * as XLSX from "xlsx";
 import {
   Trophy,
@@ -275,6 +275,45 @@ function useIsDesktop() {
   return isDesktop;
 }
 
+// 기본 화면: 양쌤스튜디오 홈페이지와 같은 톤(따뜻한 종이색 + 남색 글자 + 코트 주황)
+const YS_THEME = {
+  "--bg": "#F8F3EA",
+  "--surface": "#FFFDF8",
+  "--surface-2": "#F2EADC",
+  "--ink": "#1D2747",
+  "--ink-2": "#4B5373",
+  "--muted": "#6B7088",
+  "--line": "#EAE0CF",
+  "--line-2": "#D9CBB3",
+  "--grad": "linear-gradient(100deg, #E2622B 0%, #EE8A3A 55%, #F2B33D 100%)",
+  "--accent": "#C24B16",
+  "--accent-2": "#3D5AA8",
+  "--good": "#1F7F52",
+  "--warn": "#B7791F",
+  "--danger": "#C8323F",
+  "--gold-500": "#B8860B",
+  "--gold-300": "#A9781A",
+};
+// 빔프로젝터 고정 모드: 큰 화면에서 잘 보이도록 어두운 전광판 톤을 그대로 써요
+const PROJECTOR_THEME = {
+  "--bg": "#0A0B0D",
+  "--surface": "#121418",
+  "--surface-2": "#1A1D22",
+  "--ink": "#F4F5F7",
+  "--ink-2": "#A3A8B1",
+  "--muted": "#6B717B",
+  "--line": "#22252B",
+  "--line-2": "#30343C",
+  "--grad": "linear-gradient(100deg, #FF9570 0%, #E48AC4 50%, #9E86FF 100%)",
+  "--accent": "#FF9570",
+  "--accent-2": "#9E86FF",
+  "--good": "#3DD68C",
+  "--warn": "#FFD23F",
+  "--danger": "#D92D4A",
+  "--gold-500": "#C9A227",
+  "--gold-300": "#E4C765",
+};
+
 function MedalIcon({ tier, size = 28, ribbon = false }) {
   const colors = {
     1: { ring: "#C9A227", fill: "#F3DA8E", glow: "#F3DA8E" },
@@ -501,14 +540,14 @@ function InfoModal({ title, icon: Icon, onClose, children }) {
       >
         <div
           className="flex items-center justify-between px-5 md:px-6 py-4 flex-shrink-0"
-          style={{ background: "var(--bg)", borderBottom: "3px solid transparent", borderImage: "linear-gradient(100deg, #FF9570, #E48AC4, #9E86FF) 1" }}
+          style={{ background: "var(--bg)", borderBottom: "3px solid transparent", borderImage: "var(--grad) 1" }}
         >
           <h2 className="lb-title text-xl flex items-center gap-2" style={{ color: "var(--ink)" }}>
             {Icon && <Icon size={20} style={{ color: "var(--accent)" }} />}
             {title}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.12)" }}>
-            <X size={16} color="white" />
+          <button onClick={onClose} className="p-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "var(--surface-2)" }}>
+            <X size={16} style={{ color: "var(--ink)" }} />
           </button>
         </div>
         <div className="px-5 md:px-6 py-5 overflow-y-auto" style={{ flex: 1 }}>
@@ -768,30 +807,16 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
   }
 
   const stageStyle = {
-    "--bg": "#0A0B0D",
-    "--surface": "#121418",
-    "--surface-2": "#1A1D22",
-    "--ink": "#F4F5F7",
-    "--ink-2": "#A3A8B1",
-    "--muted": "#6B717B",
-    "--line": "#22252B",
-    "--line-2": "#30343C",
-    "--grad": "linear-gradient(100deg, #FF9570 0%, #E48AC4 50%, #9E86FF 100%)",
-    "--accent": "#FF9570",
-    "--accent-2": "#9E86FF",
-    "--good": "#3DD68C",
-    "--warn": "#FFD23F",
-    "--danger": "#D92D4A",
-    "--gold-500": "#C9A227",
-    "--gold-300": "#E4C765",
+    ...YS_THEME,
     fontFamily: "'IBM Plex Sans KR', sans-serif",
     backgroundColor: "var(--bg)",
     minHeight: "100vh",
     color: "var(--ink)",
   };
   const stageFonts = `
-        @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700..900;1,700..900&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
-        .lb-title { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 900; letter-spacing: -0.03em; }
+        @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700..900;1,700..900&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Jua&display=swap');
+        .lb-title { font-family: 'Jua', 'IBM Plex Sans KR', sans-serif; font-weight: 400; letter-spacing: -0.01em; }
+        .lb-proj .lb-title { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 900; letter-spacing: -0.03em; }
         .lb-mono { font-family: 'JetBrains Mono', monospace; }
         .lb-tab-btn { transition: color 0.15s ease, border-color 0.15s ease; }
         select, textarea, input:not([type=checkbox]):not([type=file]) { font-family: 'IBM Plex Sans KR', sans-serif; background-color: var(--surface-2); color: var(--ink); border-color: var(--line); }
@@ -819,7 +844,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
 
   if (projectorLocked) {
     return (
-      <div style={stageStyle} className="w-full">
+      <div style={{ ...stageStyle, ...PROJECTOR_THEME }} className="w-full lb-proj">
         <style>{stageFonts}</style>
         <header
           className="relative overflow-hidden px-4 pt-6 pb-5 md:px-6 md:pt-11 md:pb-9"
@@ -919,12 +944,12 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
 
       <header
         className="px-4 pt-4 pb-3 md:px-6 md:pt-8 md:pb-7"
-        style={{ background: "var(--bg)", borderBottom: "3px solid transparent", borderImage: "linear-gradient(100deg, #FF9570, #E48AC4, #9E86FF) 1" }}
+        style={{ background: "var(--bg)", borderBottom: "3px solid transparent", borderImage: "var(--grad) 1" }}
       >
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 mb-3 md:mb-1">
           <span
             className="lb-mono text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 min-w-0"
-            style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "var(--accent)" }}
+            style={{ backgroundColor: "var(--surface-2)", color: "var(--accent)" }}
           >
             <KeyRound size={12} className="flex-shrink-0" />
             <span className="truncate">{workspaceCode}</span>
@@ -933,14 +958,14 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
             <button
               onClick={enterProjectorMode}
               className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap"
-              style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "var(--ink)", border: "1px solid rgba(255,255,255,0.22)" }}
+              style={{ backgroundColor: "var(--surface)", color: "var(--ink)", border: "1px solid var(--line-2)" }}
             >
               <Projector size={13} /> 빔프로젝터 고정
             </button>
             <button
               onClick={() => setShowFeatureGuide(true)}
               className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap"
-              style={{ backgroundColor: "rgba(255,149,112,0.16)", color: "var(--accent)", border: "1px solid rgba(255,149,112,0.4)" }}
+              style={{ backgroundColor: "rgba(226,98,43,0.1)", color: "var(--accent)", border: "1px solid rgba(226,98,43,0.35)" }}
             >
               <HelpCircle size={13} /> 기능 설명
             </button>
@@ -996,7 +1021,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
           </div>
         </div>
 
-        <nav className="max-w-4xl mx-auto grid grid-cols-4 md:flex md:gap-6 mt-4 md:mt-6 border-b" style={{ borderColor: "rgba(255,255,255,0.12)" }}>
+        <nav className="max-w-4xl mx-auto grid grid-cols-4 md:flex md:gap-6 mt-4 md:mt-6 border-b" style={{ borderColor: "var(--line)" }}>
           {[
             { id: "leaderboard", label: "리더보드", icon: Trophy },
             { id: "roster", label: "명단 관리", icon: Users },
@@ -1009,7 +1034,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
               className="lb-tab-btn flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 pb-2.5 md:pb-3 text-xs md:text-sm font-medium whitespace-nowrap"
               style={{
                 color: tab === id ? "var(--ink)" : "var(--ink-2)",
-                borderBottom: "2px solid transparent", borderImage: tab === id ? "linear-gradient(100deg, #FF9570, #E48AC4, #9E86FF) 1" : "none",
+                borderBottom: "2px solid transparent", borderImage: tab === id ? "var(--grad) 1" : "none",
               }}
             >
               <Icon size={16} />
@@ -3354,8 +3379,22 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
 const INTRO_SESSION_KEY = "league-intro-shown";
 
 function IntroSplash({ onDone }) {
-  const [stage, setStage] = useState(0); // 0: 아이콘 등장, 1: 제목 등장, 2: 페이드아웃
+  const [stage, setStage] = useState(0); // 0: 등장, 1: 페이드아웃
   const reducedMotion = useRef(false);
+  const heroRef = useRef(null);
+  const chipImgRef = useRef(null);
+
+  // 가운데 얼굴이 위 이름표의 작은 얼굴 자리로 날아가도록 거리와 크기를 재 둬요
+  useLayoutEffect(() => {
+    const hero = heroRef.current;
+    const chip = chipImgRef.current;
+    if (!hero || !chip) return;
+    const a = hero.getBoundingClientRect();
+    const b = chip.getBoundingClientRect();
+    hero.style.setProperty("--tx", `${b.left + b.width / 2 - (a.left + a.width / 2)}px`);
+    hero.style.setProperty("--ty", `${b.top + b.height / 2 - (a.top + a.height / 2)}px`);
+    hero.style.setProperty("--ts", (b.width / a.width).toFixed(3));
+  }, []);
 
   useEffect(() => {
     try {
@@ -3367,158 +3406,123 @@ function IntroSplash({ onDone }) {
       onDone();
       return;
     }
-    const t1 = setTimeout(() => setStage(1), 900);
-    const t2 = setTimeout(() => setStage(2), 2600);
-    const t3 = setTimeout(() => onDone(), 3150);
+    const t1 = setTimeout(() => setStage(1), 3200);
+    const t2 = setTimeout(() => onDone(), 3750);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
-      clearTimeout(t3);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (reducedMotion.current) return null;
 
-  const stars = [
-    { x: "8%", y: "16%", size: 6, delay: "0s" },
-    { x: "90%", y: "12%", size: 5, delay: "0.5s" },
-    { x: "14%", y: "76%", size: 5, delay: "1s" },
-    { x: "86%", y: "72%", size: 6, delay: "0.3s" },
-    { x: "50%", y: "6%", size: 4, delay: "1.4s" },
-    { x: "26%", y: "90%", size: 5, delay: "0.8s" },
-    { x: "74%", y: "92%", size: 5, delay: "1.7s" },
-    { x: "4%", y: "48%", size: 4, delay: "1.1s" },
-    { x: "96%", y: "44%", size: 4, delay: "0.65s" },
+  // 전광판 숫자: 0에서 올라가며 자리 잡아요
+  const bars = [
+    { tier: 2, h: 62, delay: "1.35s", score: "86" },
+    { tier: 1, h: 92, delay: "1.2s", score: "97" },
+    { tier: 3, h: 44, delay: "1.5s", score: "78" },
   ];
 
   return (
     <div
       onClick={onDone}
-      className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer"
-      style={{
-        zIndex: 100,
-        background: "linear-gradient(160deg, #121418, #0A0B0D 65%, #0A0B0D)",
-        opacity: stage === 2 ? 0 : 1,
-        transition: "opacity 0.55s ease",
-      }}
+      role="img"
+      aria-label="스코어 대시보드 시작 화면"
+      className="ys-splash fixed inset-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer"
+      style={{ zIndex: 100, background: "#F8F3EA", opacity: stage === 1 ? 0 : 1, transition: "opacity 0.55s ease" }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700..900;1,700..900&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
-        @keyframes introBurstSpin { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
-        @keyframes introTwinkle { 0%, 100% { opacity: 0.15; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.3); } }
-        @keyframes introPop { 0% { opacity: 0; transform: scale(0.35) translateY(24px); } 60% { opacity: 1; transform: scale(1.14) translateY(0); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
-        @keyframes introMedalDrop { 0% { opacity: 0; transform: translateY(-50px) scale(0.55); } 60% { opacity: 1; } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes introTitleIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes introShock { 0% { opacity: 0.55; transform: translate(-50%,-50%) scale(0.2); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(2.4); } }
-        @keyframes introGlowPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.85; } }
-        .intro-trophy { animation: introPop 0.75s cubic-bezier(0.22,1,0.36,1) both; }
-        .intro-medal { animation: introMedalDrop 0.65s cubic-bezier(0.22,1,0.36,1) both; }
-        .intro-title { animation: introTitleIn 0.65s ease both; }
-        .intro-shock { animation: introShock 1.1s cubic-bezier(0.16,1,0.3,1) both; animation-delay: 0.15s; }
-        .intro-glow { animation: introGlowPulse 2.6s ease-in-out infinite; }
-        .intro-trophy svg, .intro-medal svg { width: 100%; height: auto; display: block; }
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Jua&display=swap');
+        .ys-splash .ys-reveal { position: absolute; inset: 0; background: radial-gradient(circle at 50% 46%, #FCE7CB 0%, #F8F3EA 58%); clip-path: circle(0 at 50% 50%); animation: ysReveal 0.85s 0.6s cubic-bezier(0.6,0,0.3,1) forwards; }
+        .ys-splash .ys-hero { position: absolute; left: 50%; top: 50%; width: 128px; height: 128px; margin: -64px 0 0 -64px; z-index: 3; pointer-events: none; }
+        .ys-splash .ys-hero img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 5px solid #FFFDF8; box-shadow: 0 0 0 4px #E2622B, 0 18px 40px -14px rgba(29,39,71,0.45); animation: ysFacePop 0.55s cubic-bezier(0.2,1.5,0.4,1) both, ysFaceGo 0.5s 0.95s cubic-bezier(0.6,0,0.3,1) forwards; }
+        .ys-splash .ys-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid #E2622B; opacity: 0; animation: ysRing 1s 0.35s ease-out both; }
+        .ys-splash .ys-ring.r2 { border-color: #F2B33D; animation-delay: 0.55s; }
+        .ys-splash .ys-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: linear-gradient(180deg, #EFCB95, #E6B57A); border-top: 10px solid #F3DDB8; }
+        .ys-splash .ys-floor::before { content: ""; position: absolute; left: 0; right: 0; top: 38%; height: 3px; background: rgba(255,255,255,0.85); }
+        .ys-splash .ys-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 5px; border-radius: 999px; background: #FFFDF8; border: 1px solid #EAE0CF; color: #4B5373; font-size: 13px; font-family: 'IBM Plex Sans KR', sans-serif; box-shadow: 0 8px 20px -12px rgba(29,39,71,0.35); animation: ysUp 0.45s 1.2s ease both; }
+        .ys-splash .ys-chip img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #E2622B; object-fit: cover; }
+        .ys-splash .ys-chip b { color: #1D2747; }
+        .ys-splash .ys-board { position: relative; margin-top: 22px; width: min(78vw, 360px); padding: 18px 20px 0; border-radius: 22px; background: #FFFDF8; border: 1px solid #EAE0CF; box-shadow: 0 22px 50px -22px rgba(29,39,71,0.35); animation: ysPop 0.6s 1.05s cubic-bezier(0.22,1,0.36,1) both; }
+        .ys-splash .ys-board-head { display: flex; align-items: center; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; color: #6B7088; }
+        .ys-splash .ys-live { display: inline-flex; align-items: center; gap: 6px; color: #E2622B; }
+        .ys-splash .ys-live i { width: 7px; height: 7px; border-radius: 50%; background: #E2622B; animation: ysBlink 1.2s ease-in-out infinite; }
+        .ys-splash .ys-podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; height: 150px; margin-top: 10px; }
+        .ys-splash .ys-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+        .ys-splash .ys-medal-wrap { animation: ysUp 0.45s ease both; }
+        .ys-splash .ys-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #1D2747; font-size: 15px; margin: 4px 0; animation: ysUp 0.45s ease both; }
+        .ys-splash .ys-bar { width: 100%; border-radius: 10px 10px 0 0; transform-origin: bottom; animation: ysGrow 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+        .ys-splash .ys-title { font-family: 'Jua', sans-serif; color: #1D2747; font-size: clamp(2.2rem, 8vw, 3.4rem); line-height: 1.1; margin-top: 26px; animation: ysUp 0.55s ease 1.3s both; }
+        .ys-splash .ys-title span { color: #E2622B; }
+        .ys-splash .ys-sub { font-family: 'IBM Plex Sans KR', sans-serif; color: #4B5373; font-size: clamp(0.95rem, 2.4vw, 1.1rem); margin-top: 10px; animation: ysUp 0.55s ease 1.45s both; }
+        .ys-splash .ys-load { width: 130px; height: 5px; border-radius: 99px; background: #EAE0CF; overflow: hidden; margin-top: 18px; animation: ysUp 0.4s 1.5s ease both; }
+        .ys-splash .ys-load i { display: block; height: 100%; background: linear-gradient(100deg, #E2622B, #EE8A3A 55%, #F2B33D); animation: ysLoad 3s ease both; }
+        .ys-splash .ys-sign { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.3em; color: #4B5373; }
+        @keyframes ysReveal { to { clip-path: circle(150vmax at 50% 50%); } }
+        @keyframes ysFacePop { from { transform: scale(0); } to { transform: scale(1); } }
+        @keyframes ysFaceGo { to { transform: translate(var(--tx, 0), var(--ty, -30vh)) scale(var(--ts, 0.23)); opacity: 0; } }
+        @keyframes ysRing { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(4.2); opacity: 0; } }
+        @keyframes ysUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        @keyframes ysPop { 0% { opacity: 0; transform: scale(0.9) translateY(16px); } 100% { opacity: 1; transform: none; } }
+        @keyframes ysGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+        @keyframes ysLoad { from { width: 0; } to { width: 100%; } }
+        @keyframes ysBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @media (max-height: 560px) { .ys-splash .ys-floor { display: none; } .ys-splash .ys-podium { height: 110px; } }
       `}</style>
-
-      <div
-        className="intro-glow absolute pointer-events-none"
-        style={{
-          top: "40%",
-          left: "50%",
-          width: "min(120vw, 1400px)",
-          height: "min(120vw, 1400px)",
-          transform: "translate(-50%,-50%)",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(228,199,101,0.22) 0%, rgba(228,199,101,0.06) 40%, transparent 70%)",
-        }}
-      />
-      <svg
-        viewBox="0 0 200 200"
-        className="absolute pointer-events-none"
-        style={{
-          top: "40%",
-          left: "50%",
-          width: "min(150vw, 1600px)",
-          height: "min(150vw, 1600px)",
-          transform: "translate(-50%,-50%)",
-          animation: "introBurstSpin 30s linear infinite",
-        }}
-      >
-        {Array.from({ length: 24 }).map((_, i) => (
-          <rect key={i} x="98.8" y="0" width="2.2" height="100" fill="#E4C765" opacity="0.1" transform={`rotate(${i * 15} 100 100)`} />
-        ))}
-      </svg>
-      <span
-        className="intro-shock absolute pointer-events-none"
-        style={{
-          top: "40%",
-          left: "50%",
-          width: "min(60vw, 520px)",
-          height: "min(60vw, 520px)",
-          borderRadius: "50%",
-          border: "2px solid rgba(228,199,101,0.55)",
-        }}
-      />
-      {stars.map((s, i) => (
-        <span
-          key={i}
-          style={{
-            position: "absolute",
-            left: s.x,
-            top: s.y,
-            width: s.size,
-            height: s.size,
-            borderRadius: "50%",
-            backgroundColor: "#F3DA8E",
-            animation: `introTwinkle 2.4s ease-in-out infinite`,
-            animationDelay: s.delay,
-          }}
-        />
-      ))}
-
-      <div className="intro-trophy relative" style={{ width: "clamp(150px, 24vw, 300px)" }}>
-        <TrophyEmblem size={300} />
+      <div className="ys-reveal" aria-hidden="true">
+        <div className="ys-floor" />
       </div>
-      <div className="flex items-end gap-5 mt-3">
-        <div className="intro-medal" style={{ animationDelay: "0.15s", width: "clamp(64px, 11vw, 120px)" }}>
-          <MedalIcon tier={2} size={120} ribbon />
+      <div className="ys-hero" ref={heroRef} aria-hidden="true">
+        <span className="ys-ring" />
+        <span className="ys-ring r2" />
+        <img src="/icons/yangssaem-face.webp" alt="" />
+      </div>
+      <div className="relative flex flex-col items-center text-center px-6">
+        <div className="ys-chip">
+          <img ref={chipImgRef} src="/icons/yangssaem-face.webp" alt="" />
+          <span>
+            <b>양쌤스튜디오</b>가 만들었어요
+          </span>
         </div>
-        <div className="intro-medal" style={{ animationDelay: "0s", width: "clamp(84px, 14.5vw, 160px)" }}>
-          <MedalIcon tier={1} size={160} ribbon />
+        <div className="ys-board" aria-hidden="true">
+          <div className="ys-board-head">
+            <span>SCOREBOARD</span>
+            <span className="ys-live">
+              <i />
+              LIVE
+            </span>
+          </div>
+          <div className="ys-podium">
+            {bars.map((b) => (
+              <div key={b.tier} className="ys-col">
+                <div style={{ animationDelay: `calc(${b.delay} + 0.45s)` }} className="ys-medal-wrap">
+                  <MedalIcon tier={b.tier} size={40} ribbon />
+                </div>
+                <div className="ys-score" style={{ animationDelay: `calc(${b.delay} + 0.5s)` }}>
+                  {b.score}
+                </div>
+                <div
+                  className="ys-bar"
+                  style={{
+                    height: `${b.h}%`,
+                    animationDelay: b.delay,
+                    background: b.tier === 1 ? "linear-gradient(180deg, #F2B33D, #E2622B)" : b.tier === 2 ? "linear-gradient(180deg, #8EA2D6, #3D5AA8)" : "linear-gradient(180deg, #E8BE86, #C98A4B)",
+                  }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="intro-medal" style={{ animationDelay: "0.3s", width: "clamp(64px, 11vw, 120px)" }}>
-          <MedalIcon tier={3} size={120} ribbon />
+        <h1 className="ys-title">
+          <span>스코어</span> 대시보드
+        </h1>
+        <p className="ys-sub">매 순간의 승점이 모여, 오늘의 챔피언이 돼요</p>
+        <div className="ys-load" aria-hidden="true">
+          <i />
         </div>
       </div>
-
-      {stage >= 1 && (
-        <div className="intro-title text-center mt-8 px-6" style={{ maxWidth: "92vw" }}>
-          <h1
-            className="tracking-wide font-semibold"
-            style={{
-              fontFamily: "'Archivo', sans-serif",
-              fontStyle: "italic",
-              fontWeight: 900,
-              letterSpacing: "-0.03em",
-              color: "#F4F5F7",
-              background: "linear-gradient(100deg, #FF9570 0%, #E48AC4 50%, #9E86FF 100%)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              fontSize: "clamp(2.1rem, 7vw, 4.5rem)",
-              lineHeight: 1.1,
-            }}
-          >
-            P.E SCORE LEADERBOARD
-          </h1>
-          <p
-            className="mt-4"
-            style={{ fontFamily: "'IBM Plex Sans KR', sans-serif", color: "#E4C765", fontSize: "clamp(1rem, 2.4vw, 1.4rem)" }}
-          >
-            매 순간의 승점이 모여, 오늘의 챔피언을 만듭니다
-          </p>
-        </div>
-      )}
+      <div className="ys-sign">YANGSSAEM STUDIO · SCORE</div>
     </div>
   );
 }
@@ -3601,22 +3605,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
   }
 
   const shellStyle = {
-    "--bg": "#0A0B0D",
-    "--surface": "#121418",
-    "--surface-2": "#1A1D22",
-    "--ink": "#F4F5F7",
-    "--ink-2": "#A3A8B1",
-    "--muted": "#6B717B",
-    "--line": "#22252B",
-    "--line-2": "#30343C",
-    "--grad": "linear-gradient(100deg, #FF9570 0%, #E48AC4 50%, #9E86FF 100%)",
-    "--accent": "#FF9570",
-    "--accent-2": "#9E86FF",
-    "--good": "#3DD68C",
-    "--warn": "#FFD23F",
-    "--danger": "#D92D4A",
-    "--gold-500": "#C9A227",
-    "--gold-300": "#E4C765",
+    ...YS_THEME,
     fontFamily: "'IBM Plex Sans KR', sans-serif",
     background: "linear-gradient(160deg, var(--surface), var(--bg) 70%)",
     minHeight: "100vh",
@@ -3626,8 +3615,8 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
   if (mode === "notice") {
     return (
       <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-8 md:py-16">
-        <style>{`.lb-title { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 900; letter-spacing: -0.03em; } input:not([type=checkbox]):not([type=file]), select, textarea { background-color: var(--surface-2); color: var(--ink); border-color: var(--line); font-family: 'IBM Plex Sans KR', sans-serif; }`}</style>
-        <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 440, backgroundColor: "var(--surface)" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Jua&display=swap'); .lb-title { font-family: 'Jua', 'IBM Plex Sans KR', sans-serif; font-weight: 400; letter-spacing: -0.01em; } input:not([type=checkbox]):not([type=file]), select, textarea { background-color: var(--surface-2); color: var(--ink); border-color: var(--line); font-family: 'IBM Plex Sans KR', sans-serif; }`}</style>
+        <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 440, backgroundColor: "var(--surface)", border: "1px solid var(--line)", boxShadow: "0 22px 50px -22px rgba(29,39,71,0.35)" }}>
           <h2 className="lb-title text-xl mb-3" style={{ color: "var(--ink)" }}>
             접근 신청 안내
           </h2>
@@ -3661,8 +3650,8 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
   if (mode === "form") {
     return (
       <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-8 md:py-16">
-        <style>{`.lb-title { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 900; letter-spacing: -0.03em; } .lb-mono { font-family: 'JetBrains Mono', monospace; } input:not([type=checkbox]):not([type=file]), select, textarea { background-color: var(--surface-2); color: var(--ink); border-color: var(--line); font-family: 'IBM Plex Sans KR', sans-serif; }`}</style>
-        <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 420, backgroundColor: "var(--surface)" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Jua&display=swap'); .lb-title { font-family: 'Jua', 'IBM Plex Sans KR', sans-serif; font-weight: 400; letter-spacing: -0.01em; } .lb-mono { font-family: 'JetBrains Mono', monospace; } input:not([type=checkbox]):not([type=file]), select, textarea { background-color: var(--surface-2); color: var(--ink); border-color: var(--line); font-family: 'IBM Plex Sans KR', sans-serif; }`}</style>
+        <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 420, backgroundColor: "var(--surface)", border: "1px solid var(--line)", boxShadow: "0 22px 50px -22px rgba(29,39,71,0.35)" }}>
           <h2 className="lb-title text-xl mb-1" style={{ color: "var(--ink)" }}>
             접근 신청
           </h2>
@@ -3725,26 +3714,27 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
     <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-8 md:py-16">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700..900;1,700..900&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
-        .lb-title { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 900; letter-spacing: -0.03em; }
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+        .lb-title { font-family: 'Jua', 'IBM Plex Sans KR', sans-serif; font-weight: 400; letter-spacing: -0.01em; }
         .lb-mono { font-family: 'JetBrains Mono', monospace; }
         input:not([type=checkbox]):not([type=file]), select, textarea { background-color: var(--surface-2); color: var(--ink); border-color: var(--line); font-family: 'IBM Plex Sans KR', sans-serif; }
       `}</style>
-      <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 420, backgroundColor: "var(--surface)" }}>
+      <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 420, backgroundColor: "var(--surface)", border: "1px solid var(--line)", boxShadow: "0 22px 50px -22px rgba(29,39,71,0.35)" }}>
         <div className="flex justify-center mb-3">
+          <span className="flex items-center gap-2 text-xs px-3 py-1 rounded-full" style={{ backgroundColor: "var(--surface-2)", color: "var(--ink-2)", border: "1px solid var(--line)" }}>
+            <img src="/icons/yangssaem-face.webp" alt="" width="22" height="22" style={{ borderRadius: "50%", border: "1.5px solid #E2622B" }} />
+            <span><b style={{ color: "var(--ink)" }}>양쌤스튜디오</b> · 스코어</span>
+          </span>
+        </div>
+        <div className="flex justify-center mb-2">
           <TrophyEmblem size={64} />
         </div>
-        <h1
-          className="lb-title text-2xl text-center mb-1 tracking-wide"
-          style={{
-            color: "#F4F5F7",
-            background: "linear-gradient(100deg, #FF9570 0%, #E48AC4 50%, #9E86FF 100%)",
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          P.E SCORE LEADERBOARD
+        <h1 className="lb-title text-3xl text-center mb-1" style={{ color: "var(--ink)" }}>
+          <span style={{ color: "#E2622B" }}>스코어</span> 대시보드
         </h1>
+        <p className="lb-mono text-center mb-2" style={{ color: "var(--muted)", fontSize: 10, letterSpacing: "0.3em" }}>
+          P.E SCORE LEADERBOARD
+        </p>
         <p className="text-sm text-center mb-5" style={{ color: "var(--ink-2)" }}>
           수업, 행사에서 개인, 팀, 반의 성적을 빔프로젝터, 화면, 모바일로 공유할 수 있어요.
         </p>
@@ -4043,7 +4033,7 @@ export default function App() {
   }
 
   if (gateLoading) {
-    return <div style={{ minHeight: "100vh", backgroundColor: "#0B1B33" }} />;
+    return <div style={{ minHeight: "100vh", backgroundColor: "#F8F3EA" }} />;
   }
   return (
     <>
