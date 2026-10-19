@@ -15,7 +15,10 @@ GitHub에 push 후 Vercel에서 이 저장소를 Import하면 자동으로 빌�
 Vercel 프로젝트 설정 > Environment Variables에 .env.example과 동일한 6개 값을 등록하세요.
 
 ## Firestore 구조
-- `workspaces/{code}/meta/config` — 코드별 설정(비밀번호, 접근 목록)
+- `workspaces/{code}/meta/config` — 코드가 있는지 확인하는 표시(비밀번호 없음)
+- `workspaces/{code}/meta/secret` — 개설자·조회 비밀번호의 SHA-256 해시. 규칙상 아무도 읽을 수 없습니다.
+- `workspaces/{code}/claims/{uid}` — 입장할 때 기기가 계산해 제출하는 해시(아무도 읽을 수 없음, 5초에 한 번만 제출 가능)
+- `workspaces/{code}/members/{uid}` — 구성원(개설자·수정자·조회자·승인 대기). `uid`는 익명 로그인 기기 번호입니다.
 - `workspaces/{code}/meta/data` — 코드별 실제 데이터(명단, 경기 기록, 승점 기준)
   - **학생 이름은 여기 포함되지 않습니다.** 서버에는 학년·반·번호·성별·id만 저장되고,
     실제 이름은 각 브라우저(기기)의 localStorage에만 남습니다(`namemap:{code}` 키).
@@ -25,16 +28,19 @@ Vercel 프로젝트 설정 > Environment Variables에 .env.example과 동일한 
     구글 드라이브 같은 클라우드나 메신저로 옮기지 마세요(경남교육청 개인정보 처리 유의사항).
   - 실명이 없어도 학년·반·번호·성별·경기 기록은 학교 안에서 누구인지 알 수 있어 **개인정보**입니다.
     코드와 비밀번호를 학생에게 알리지 마세요.
-  - 접근 신청 때 적는 이름(`accessList`)은 서버에 저장됩니다. 화면에서 별명·역할로 적도록 안내합니다.
+  - 접근 신청 때 적는 이름(`members`의 `name`)은 서버에 저장됩니다. 화면에서 별명·역할로 적도록 안내합니다.
 
 ## 보안 규칙
-`firestore.rules` 참고. 앱이 쓰는 문서(`config`, `data`)만 허용하고 목록 조회·그 외 경로는 막으며,
-저장 값의 종류·크기를 점검합니다. 다만 코드를 아는 사람은 읽고 쓸 수 있는 수준입니다(Firebase Auth 미도입 —
-개설자/수정자/조회자 구분은 앱 화면에서만 적용되고 서버에서 강제되지 않습니다).
+`firestore.rules` 참고. 모든 기기는 **Firebase 익명 로그인**을 하고(이름·이메일 없음), 권한은 서버 규칙이 직접 지킵니다.
+- 비밀번호는 원문으로 저장하지 않고 해시만 `meta/secret`에 둡니다(개인정보의 안전성 확보조치 기준 제7조①).
+- 입장할 때 기기가 계산한 해시를 규칙이 저장된 해시와 비교해야 구성원 문서가 만들어집니다. 틀린 비밀번호는 5초에 한 번만 다시 시도할 수 있습니다.
+- 데이터 읽기는 승인된 구성원(또는 승인 대기 중인 수정 신청자), 쓰기는 개설자·승인된 수정자만 됩니다. 구성원 목록과 승인은 개설자만 다룹니다.
+- 예전 방식(비밀번호 원문이 `meta/config`에 있던 코드)은 개설자가 한 번 로그인하면 자동으로 새 방식으로 옮겨집니다. 기존 조회자·수정자는 다시 입장(신청)해야 합니다.
 
-적용 방법: Firebase 콘솔 → Firestore Database → 규칙 탭에 붙여넣고 게시하기 전에,
-**규칙 플레이그라운드**에서 `workspaces/테스트/meta/config`(get)와 `.../meta/data`(get) 요청이
-허용되는지 확인하세요. 문제가 생기면 이전 규칙으로 되돌릴 수 있도록 기존 규칙은 복사해 두세요.
+적용 순서(처음 한 번):
+1. Firebase 콘솔 → Authentication → 로그인 방법 → **익명** 사용 설정
+2. 기존 규칙을 복사해 둔 뒤 Firestore Database → 규칙 탭에 `firestore.rules`를 붙여넣고 게시
+3. 새 버전 배포 후 개설자가 각 코드에 한 번씩 로그인(옮기기)
 
 ## 앱 아이콘 (크롬 바로가기)
 `public/`의 `favicon.svg`, `icons/*.png`, `apple-touch-icon.png`와 `manifest.webmanifest`가 크롬
