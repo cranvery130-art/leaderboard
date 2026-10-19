@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import * as XLSX from "xlsx";
 import {
   Trophy,
@@ -30,13 +30,17 @@ import {
   Lock,
 } from "lucide-react";
 import {
-  readWorkspaceConfig,
-  writeWorkspaceConfig,
-  deleteWorkspaceConfig,
-  watchWorkspaceConfig,
-  readWorkspaceData,
+  currentUid,
+  createWorkspace,
+  founderLogin,
+  requestAccess,
+  verifyFounder,
+  changePasswords,
+  watchMyMember,
+  watchMembers,
+  updateMember,
+  deleteWorkspaceAll,
   writeWorkspaceData,
-  deleteWorkspaceData,
   watchWorkspaceData,
   getLocal,
   setLocal,
@@ -67,7 +71,6 @@ const RESULT_COLORS = {
 const EVENT_PRESETS = ["축구", "피구", "배드민턴", "농구", "발야구", "줄넘기", "티볼", "탁구"];
 const LAST_CODE_KEY = "last-code";
 const LAST_NAME_KEY = "last-name";
-const DEVICE_ID_KEY = "device-id";
 
 function sanitizeCode(raw) {
   return String(raw || "").trim().replace(/[\s/\\'"]+/g, "-").slice(0, 30);
@@ -569,13 +572,12 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
     setUnlockBusy(true);
     setUnlockError("");
     try {
-      const cfg = await readWorkspaceConfig(workspaceCode);
-      if (cfg && cfg.founderPassword && cfg.founderPassword === unlockPassword.trim()) {
+      if (await verifyFounder(workspaceCode, unlockPassword)) {
         setProjectorLocked(false);
         setShowUnlockModal(false);
         setUnlockPassword("");
       } else {
-        setUnlockError("개설자 비밀번호가 올바르지 않습니다.");
+        setUnlockError("개설자 비밀번호가 올바르지 않습니다. (연달아 시도하면 5초 뒤에 다시 해 주세요)");
       }
     } catch (e) {
       setUnlockError("확인 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -690,12 +692,12 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
   // 승인 대기 중이거나 조회/수정 권한자인 경우, 개설자가 승인·거절·권한취소를 하면
   // 실시간으로 반영되도록 설정을 구독합니다.
   useEffect(() => {
-    if (role === "founder" || !onRefreshRole) return;
-    const unsubscribe = watchWorkspaceConfig(workspaceCode, () => {
+    if (role === "founder" || !onRefreshRole || !deviceId) return;
+    const unsubscribe = watchMyMember(workspaceCode, deviceId, () => {
       onRefreshRole();
     });
     return () => unsubscribe();
-  }, [role, workspaceCode, onRefreshRole]);
+  }, [role, workspaceCode, onRefreshRole, deviceId]);
 
   // 되돌리기용: 이 기기 이름표에서 특정 학생 id의 이름을 지웁니다.
   function forgetLocalNames(ids) {
@@ -717,12 +719,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
 
   async function closeoutWorkspace() {
     try {
-      await deleteWorkspaceData(workspaceCode);
-    } catch (e) {
-      // already empty — nothing to delete
-    }
-    try {
-      await deleteWorkspaceConfig(workspaceCode);
+      await deleteWorkspaceAll(workspaceCode);
     } catch (e) {
       // already empty — nothing to delete
     }
@@ -3176,57 +3173,52 @@ function SettingsTab({
 }
 
 function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
-  const [config, setConfig] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState(null);
   const [viewerPwDraft, setViewerPwDraft] = useState("");
   const [founderPwDraft, setFounderPwDraft] = useState("");
+  const [viewerOff, setViewerOff] = useState(false);
   const [showFounderPw, setShowFounderPw] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
-  const draftsInitialized = useRef(false);
 
   useEffect(() => {
-    draftsInitialized.current = false;
-    setLoading(true);
-    const unsubscribe = watchWorkspaceConfig(workspaceCode, (cfg) => {
-      setConfig(cfg);
-      if (cfg && !draftsInitialized.current) {
-        setViewerPwDraft(cfg.viewerPassword || "");
-        setFounderPwDraft(cfg.founderPassword || "");
-        draftsInitialized.current = true;
-      }
-      setLoading(false);
-    });
+    setMembers(null);
+    const unsubscribe = watchMembers(workspaceCode, (list) => setMembers(list));
     return () => unsubscribe();
   }, [workspaceCode]);
 
-  async function saveConfig(next) {
-    await writeWorkspaceConfig(workspaceCode, next);
-    setConfig(next);
-  }
-
   async function savePasswords() {
-    if (!config) return;
     setSavingPw(true);
-    await saveConfig({ ...config, viewerPassword: viewerPwDraft.trim(), founderPassword: founderPwDraft.trim() });
-    setSavingPw(false);
-    showToast("비밀번호를 저장했습니다.", "ok");
+    try {
+      const changed = await changePasswords(workspaceCode, {
+        viewerPassword: viewerPwDraft,
+        founderPassword: founderPwDraft,
+        viewerOff,
+      });
+      if (changed) {
+        setViewerPwDraft("");
+        setFounderPwDraft("");
+        showToast("비밀번호를 바꿨습니다.", "ok");
+      } else {
+        showToast("바꿀 비밀번호를 입력해 주세요.", "warn");
+      }
+    } catch (e) {
+      showToast("비밀번호를 바꾸지 못했습니다. 다시 시도해 주세요.", "warn");
+    } finally {
+      setSavingPw(false);
+    }
   }
 
   async function decide(id, status) {
-    if (!config) return;
-    const list = (config.accessList || []).map((a) => (a.id === id ? { ...a, status, decidedAt: Date.now() } : a));
-    await saveConfig({ ...config, accessList: list });
+    await updateMember(workspaceCode, id, { status, decidedAt: Date.now() });
     showToast(status === "approved" ? "승인했습니다." : "거절했습니다.", "ok");
   }
 
   async function revoke(id) {
-    if (!config) return;
-    const list = (config.accessList || []).map((a) => (a.id === id ? { ...a, status: "denied", decidedAt: Date.now() } : a));
-    await saveConfig({ ...config, accessList: list });
+    await updateMember(workspaceCode, id, { status: "denied", decidedAt: Date.now() });
     showToast("접근 권한을 취소했습니다.", "ok");
   }
 
-  if (loading || !config) {
+  if (!members) {
     return (
       <div className="rounded-lg p-4" style={{ border: "1px solid var(--line)", backgroundColor: "var(--surface)" }}>
         <p className="text-xs" style={{ color: "var(--ink-2)" }}>
@@ -3236,9 +3228,9 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
     );
   }
 
-  const accessList = config.accessList || [];
-  const pending = accessList.filter((a) => a.status === "pending");
-  const approved = accessList.filter((a) => a.status === "approved");
+  const others = members.filter((a) => a.id !== deviceId && a.type !== "founder");
+  const pending = others.filter((a) => a.status === "pending");
+  const approved = others.filter((a) => a.status === "approved");
   const inputStyle = { border: "1px solid var(--line)" };
 
   return (
@@ -3249,29 +3241,38 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
       <p className="text-xs mb-3" style={{ color: "var(--ink-2)" }}>
         조회 비밀번호를 알면 누구나 열람 신청을 해서 바로 조회할 수 있어요. 명단·기록을 수정하려면 개설자인 선생님의 승인이 한 번 더 필요합니다.
       </p>
+      <p className="text-xs mb-3" style={{ color: "var(--ink-2)" }}>
+        비밀번호는 되돌릴 수 없는 암호(해시)로만 저장돼서 이 화면에서도 지금 비밀번호를 보여줄 수 없어요. 바꿀 때만 새 비밀번호를 적어 주세요(빈 칸은 그대로 유지).
+      </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
         <div>
           <label className="block text-xs font-medium mb-1" style={{ color: "var(--ink-2)" }}>
-            조회 비밀번호 (동료 선생님께 안내)
+            새 조회 비밀번호 (동료 선생님께 안내)
           </label>
           <input
             value={viewerPwDraft}
             onChange={(e) => setViewerPwDraft(e.target.value)}
-            placeholder="비워두면 접근 신청 자체가 꺼집니다"
+            disabled={viewerOff}
+            placeholder="빈 칸이면 지금 비밀번호 유지"
             className="w-full px-3 py-2 rounded-md text-sm outline-none"
             style={inputStyle}
           />
+          <label className="flex items-center gap-1.5 text-xs mt-1.5" style={{ color: "var(--ink-2)" }}>
+            <input type="checkbox" checked={viewerOff} onChange={(e) => setViewerOff(e.target.checked)} />
+            접근 신청 끄기(조회 비밀번호 없애기)
+          </label>
         </div>
         <div>
           <label className="block text-xs font-medium mb-1" style={{ color: "var(--ink-2)" }}>
-            개설자 전용 비밀번호
+            새 개설자 전용 비밀번호
           </label>
           <div className="flex gap-1.5">
             <input
               type={showFounderPw ? "text" : "password"}
               value={founderPwDraft}
               onChange={(e) => setFounderPwDraft(e.target.value)}
+              placeholder="빈 칸이면 지금 비밀번호 유지"
               className="flex-1 min-w-0 px-3 py-2 rounded-md text-sm outline-none"
               style={inputStyle}
             />
@@ -3291,7 +3292,7 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
         className="px-3 py-1.5 rounded-md text-xs font-medium mb-4"
         style={{ backgroundColor: "var(--ink)", color: "var(--bg)", opacity: savingPw ? 0.6 : 1 }}
       >
-        {savingPw ? "저장 중..." : "비밀번호 저장"}
+        {savingPw ? "저장 중..." : "비밀번호 바꾸기"}
       </button>
 
       <div className="mb-4">
@@ -3551,7 +3552,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
       const result = await onFounderLogin(clean, founderPassword);
       if (!result.ok) {
         if (result.reason === "bad-code") setError("존재하지 않는 코드입니다. 아래 '새 코드 만들기'로 새로 만들 수 있어요.");
-        else setError("개설자 전용 비밀번호가 올바르지 않습니다.");
+        else setError("개설자 전용 비밀번호가 올바르지 않습니다. 연달아 시도했다면 5초 뒤에 다시 해 주세요.");
       }
     } catch (e) {
       console.error("founder login failed:", e);
@@ -3588,8 +3589,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
       const result = await onRequestAccess({ name, code: reqCode, password: reqPassword, wantsEdit });
       if (!result.ok) {
         if (result.reason === "bad-code") setFormError("존재하지 않는 코드입니다.");
-        else if (result.reason === "no-password-set") setFormError("이 코드는 아직 조회 비밀번호가 설정되어 있지 않습니다. 개설자에게 문의해 주세요.");
-        else if (result.reason === "bad-password") setFormError("조회 비밀번호가 올바르지 않습니다.");
+        else if (result.reason === "bad-password") setFormError("조회 비밀번호가 올바르지 않거나, 개설자가 접근 신청을 꺼 두었어요. 연달아 시도했다면 5초 뒤에 다시 해 주세요.");
         else setFormError("신청을 처리하지 못했습니다. 다시 시도해 주세요.");
       }
     } catch (e) {
@@ -3978,13 +3978,11 @@ export default function App() {
     const code = getLocal(LAST_CODE_KEY);
     if (code) setLastCode(code);
 
-    let id = getLocal(DEVICE_ID_KEY);
-    if (!id) {
-      id = uid("device");
-      setLocal(DEVICE_ID_KEY, id);
-    }
-    setDeviceId(id);
-    setGateLoading(false);
+    // 이 기기의 익명 로그인 고유번호(uid). 보안 규칙이 이 번호로 권한을 구분해요.
+    currentUid()
+      .then((id) => setDeviceId(id))
+      .catch((e) => console.error("anonymous sign-in failed:", e))
+      .finally(() => setGateLoading(false));
   }, []);
 
   function enterAs(code, role, myName) {
@@ -3994,72 +3992,51 @@ export default function App() {
   }
 
   async function handleFounderLogin(code, founderPassword) {
-    const cfg = await readWorkspaceConfig(code);
-    if (!cfg) return { ok: false, reason: "bad-code" };
-    if (!cfg.founderPassword || cfg.founderPassword !== founderPassword.trim()) return { ok: false, reason: "bad-password" };
-    enterAs(code, "founder", "개설자");
-    return { ok: true };
+    const result = await founderLogin(code, founderPassword);
+    if (result.ok) enterAs(code, "founder", "개설자");
+    return result;
   }
 
   async function handleCreateCode(code, viewerPassword, founderPassword) {
-    const existing = await readWorkspaceConfig(code);
-    if (existing) {
-      if (existing.founderPassword === founderPassword.trim()) {
-        enterAs(code, "founder", "개설자");
-        return { ok: true };
-      }
-      return { ok: false, reason: "code-taken" };
+    if (await createWorkspace(code, viewerPassword, founderPassword)) {
+      enterAs(code, "founder", "개설자");
+      return { ok: true };
     }
-    const cfg = { viewerPassword: viewerPassword.trim(), founderPassword: founderPassword.trim(), createdAt: Date.now(), accessList: [] };
-    await writeWorkspaceConfig(code, cfg);
-    enterAs(code, "founder", "개설자");
-    return { ok: true };
+    // 이미 있는 코드: 같은 개설자 비밀번호면 그대로 로그인
+    const result = await founderLogin(code, founderPassword);
+    if (result.ok) {
+      enterAs(code, "founder", "개설자");
+      return { ok: true };
+    }
+    return { ok: false, reason: "code-taken" };
   }
 
   async function handleRequestAccess({ name, code, password, wantsEdit }) {
     const clean = sanitizeCode(code);
-    const cfg = await readWorkspaceConfig(clean);
-    if (!cfg) return { ok: false, reason: "bad-code" };
-    if (!cfg.viewerPassword) return { ok: false, reason: "no-password-set" };
-    if (cfg.viewerPassword !== password.trim()) return { ok: false, reason: "bad-password" };
-
-    const list = (cfg.accessList || []).filter((a) => a.id !== deviceId);
-    const existing = (cfg.accessList || []).find((a) => a.id === deviceId);
-    let entry;
-    if (existing && existing.status !== "denied") {
-      entry = existing;
-      list.push(entry);
-    } else {
-      entry = {
-        id: deviceId,
-        name: name.trim(),
-        type: wantsEdit ? "editor" : "viewer",
-        status: wantsEdit ? "pending" : "approved",
-        submittedAt: Date.now(),
-      };
-      list.push(entry);
-      await writeWorkspaceConfig(clean, { ...cfg, accessList: list });
-    }
-    const role = entry.status === "approved" ? entry.type : "pending";
-    enterAs(clean, role, entry.name);
+    if (!password.trim()) return { ok: false, reason: "bad-password" };
+    const result = await requestAccess(clean, password, name, wantsEdit);
+    if (!result.ok) return result;
+    const entry = result.entry;
+    const role = entry.type === "founder" ? "founder" : entry.status === "approved" ? entry.type : "pending";
+    enterAs(clean, role, entry.name || name.trim());
     return { ok: true };
   }
 
-  async function refreshRole() {
-    if (!session || session.role === "founder") return;
-    const cfg = await readWorkspaceConfig(session.workspaceCode);
-    if (!cfg) {
-      setSession(null);
-      return;
-    }
-    const entry = (cfg.accessList || []).find((a) => a.id === deviceId);
-    if (!entry || entry.status === "denied") {
-      setSession(null);
-      return;
-    }
-    const role = entry.status === "approved" ? entry.type : "pending";
-    setSession((prev) => (prev && prev.role !== role ? { ...prev, role } : prev));
-  }
+  const refreshRole = useCallback(async () => {
+    if (!session || session.role === "founder" || !deviceId) return;
+    await new Promise((resolve) => {
+      const unsub = watchMyMember(session.workspaceCode, deviceId, (entry) => {
+        unsub();
+        if (!entry || entry.status === "denied") {
+          setSession(null);
+        } else {
+          const role = entry.status === "approved" ? entry.type : "pending";
+          setSession((prev) => (prev && prev.role !== role ? { ...prev, role } : prev));
+        }
+        resolve();
+      });
+    });
+  }, [session, deviceId]);
 
   function leaveWorkspace() {
     setSession(null);

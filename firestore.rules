@@ -2,46 +2,175 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 워크스페이스 코드: 앱이 만드는 코드는 최대 30자(공백·슬래시 없음)입니다.
+    // ───────────────────────────────────────────────────────────────
+    // [보안 구조] (2026-10 개편)
+    //  - 모든 기기는 Firebase 익명 로그인을 해요(이름·이메일 없음). 그 기기 고유번호(uid)로 권한을 구분해요.
+    //  - 비밀번호는 원문으로 저장하지 않아요. SHA-256 해시만 meta/secret에 두고, 그 문서는 아무도 읽을 수 없어요.
+    //  - 입장할 때 기기는 "내가 계산한 해시"를 claims/{uid}에 쓰고, 이 규칙이 저장된 해시와 같은지 비교해
+    //    members/{uid}(구성원 문서)를 만들게 해요. 그래서 코드를 알아도 비밀번호를 알아낼 수 없고,
+    //    개설자·수정자·조회자 구분을 서버가 직접 지켜요.
+    //  - 예전 방식(비밀번호 원문이 meta/config에 있는 코드)은 개설자가 한 번 로그인하면 새 방식으로 옮겨져요.
+    //    옮기기 전에도 원문이 든 config 문서는 개설자 말고는 읽을 수 없어요.
+    // ───────────────────────────────────────────────────────────────
+
     function validCode(code) {
       return code.size() >= 1 && code.size() <= 40;
     }
-
-    // ───────────────────────────────────────────────────────────────
-    // [이 규칙이 하는 일 / 못 하는 일]
-    //  - 하는 일: 앱이 실제로 쓰는 문서(config, data) 두 개만 허용하고, 그 외 경로·문서는
-    //    전부 차단합니다. 문서 목록 조회(list)도 막아서 코드를 훑어 찾을 수 없게 하고,
-    //    저장되는 값의 종류·크기를 점검해 엉뚱한 값이 잔뜩 쌓이는 것을 막습니다.
-    //  - 못 하는 일: "이 사람이 개설자/수정자/조회자인가"를 서버에서 구분하지는 못합니다.
-    //    이 앱에는 Firebase Auth(로그인)가 없어서, 규칙이 사용자를 알아볼 방법이 없기 때문입니다.
-    //    코드를 아는 사람은 읽고 쓸 수 있는 수준이고, 개설자/수정자 구분은 앱 화면에서만 적용됩니다.
-    //    이 구분까지 서버에서 강제하려면 Firebase Auth 도입과 로그인 구조 개편이 필요합니다.
-    // ───────────────────────────────────────────────────────────────
-
-    // 코드별 설정: 조회용·개설자용 비밀번호와 접근 목록
-    match /workspaces/{code}/meta/config {
-      allow get: if validCode(code);
-      allow delete: if validCode(code);
-      allow create, update: if validCode(code)
-        && request.resource.data.get('viewerPassword', '') is string
-        && request.resource.data.get('viewerPassword', '').size() <= 100
-        && request.resource.data.get('founderPassword', '') is string
-        && request.resource.data.get('founderPassword', '').size() <= 100
-        && request.resource.data.get('accessList', []) is list
-        && request.resource.data.get('accessList', []).size() <= 500;
+    function signedIn() {
+      return request.auth != null;
+    }
+    function memberPath(code, uid) {
+      return /databases/$(database)/documents/workspaces/$(code)/members/$(uid);
+    }
+    function claimPath(code, uid) {
+      return /databases/$(database)/documents/workspaces/$(code)/claims/$(uid);
+    }
+    function secretPath(code) {
+      return /databases/$(database)/documents/workspaces/$(code)/meta/secret;
+    }
+    function configPath(code) {
+      return /databases/$(database)/documents/workspaces/$(code)/meta/config;
     }
 
-    // 코드별 실제 데이터: 명단(이름 제외), 경기 기록, 승점 기준
+    // 이 요청 직전 상태 기준의 내 구성원 정보
+    function me(code) {
+      return get(memberPath(code, request.auth.uid)).data;
+    }
+    function isMember(code) {
+      return signedIn() && exists(memberPath(code, request.auth.uid));
+    }
+    function canView(code) {
+      return isMember(code) && me(code).status in ['approved', 'pending'];
+    }
+    function isFounder(code) {
+      return isMember(code) && me(code).type == 'founder' && me(code).status == 'approved';
+    }
+    function canEdit(code) {
+      return isMember(code) && me(code).status == 'approved' && me(code).type in ['founder', 'editor'];
+    }
+    // 같은 묶음(batch) 쓰기까지 반영한 상태 기준
+    function isFounderAfter(code) {
+      return signedIn()
+        && existsAfter(memberPath(code, request.auth.uid))
+        && getAfter(memberPath(code, request.auth.uid)).data.type == 'founder'
+        && getAfter(memberPath(code, request.auth.uid)).data.status == 'approved';
+    }
+
+    // 예전 방식 코드: config에 비밀번호 원문이 남아 있고 아직 secret이 없음
+    function isLegacy(code) {
+      return !exists(secretPath(code))
+        && exists(configPath(code))
+        && ('founderPassword' in get(configPath(code)).data);
+    }
+    // 내가 이번에 제출한 해시·예전 비밀번호(같은 묶음 쓰기 포함)
+    function myClaim(code) {
+      return getAfter(claimPath(code, request.auth.uid)).data;
+    }
+    function hasClaim(code) {
+      return existsAfter(claimPath(code, request.auth.uid));
+    }
+    function founderOk(code) {
+      return hasClaim(code) && (
+        (existsAfter(secretPath(code)) && myClaim(code).h == getAfter(secretPath(code)).data.founder)
+        || (isLegacy(code) && myClaim(code).get('legacy', null) is string
+            && get(configPath(code)).data.founderPassword != ''
+            && myClaim(code).legacy == get(configPath(code)).data.founderPassword)
+      );
+    }
+    function viewerOk(code) {
+      return hasClaim(code) && (
+        (existsAfter(secretPath(code)) && getAfter(secretPath(code)).data.viewer != ''
+            && myClaim(code).h == getAfter(secretPath(code)).data.viewer)
+        || (isLegacy(code) && myClaim(code).get('legacy', null) is string
+            && get(configPath(code)).data.get('viewerPassword', '') != ''
+            && myClaim(code).legacy == get(configPath(code)).data.viewerPassword)
+      );
+    }
+    // 내가 내 구성원 문서를 만들거나 바꿀 때 허용되는 모양
+    function selfEntryOk(code, d) {
+      return d.keys().hasOnly(['type', 'status', 'name', 'submittedAt', 'decidedAt', 'verifiedAt'])
+        && d.name is string && d.name.size() <= 60
+        && (
+          (d.type == 'founder' && d.status == 'approved' && founderOk(code))
+          || (d.type == 'viewer' && d.status == 'approved' && viewerOk(code))
+          || (d.type == 'editor' && d.status == 'pending' && viewerOk(code))
+        );
+    }
+    function entryShapeOk(d) {
+      return d.keys().hasOnly(['type', 'status', 'name', 'submittedAt', 'decidedAt', 'verifiedAt'])
+        && d.type in ['founder', 'editor', 'viewer']
+        && d.status in ['approved', 'pending', 'denied']
+        && d.name is string && d.name.size() <= 60;
+    }
+
+    // 비밀번호 해시: 아무도 읽을 수 없음
+    match /workspaces/{code}/meta/secret {
+      allow read: if false;
+      // 새 코드 만들기(코드가 아직 없을 때) 또는 예전 코드를 옮기는 개설자
+      allow create: if validCode(code) && signedIn()
+        && request.resource.data.keys().hasOnly(['founder', 'viewer'])
+        && request.resource.data.founder is string && request.resource.data.founder.size() == 64
+        && request.resource.data.viewer is string
+        && (request.resource.data.viewer == '' || request.resource.data.viewer.size() == 64)
+        && ((!exists(configPath(code)) && existsAfter(configPath(code))) || isFounder(code));
+      allow update: if isFounder(code)
+        && request.resource.data.keys().hasOnly(['founder', 'viewer'])
+        && request.resource.data.founder is string && request.resource.data.founder.size() == 64
+        && request.resource.data.viewer is string
+        && (request.resource.data.viewer == '' || request.resource.data.viewer.size() == 64);
+      allow delete: if isFounder(code);
+    }
+
+    // 코드 존재 확인용 설정(새 방식에서는 비밀번호가 없음)
+    match /workspaces/{code}/meta/config {
+      allow get: if validCode(code) && signedIn()
+        && (resource == null || !('founderPassword' in resource.data) || isFounder(code));
+      allow create: if validCode(code) && signedIn()
+        && request.resource.data.keys().hasOnly(['createdAt', 'v'])
+        && existsAfter(secretPath(code));
+      // 예전 코드를 옮길 때 비밀번호 원문을 지우는 것 포함
+      allow update: if isFounder(code)
+        && request.resource.data.keys().hasOnly(['createdAt', 'v', 'accessList']);
+      allow delete: if isFounder(code);
+    }
+
+    // 실제 데이터: 명단(이름 제외), 경기 기록, 승점 기준
     match /workspaces/{code}/meta/data {
-      allow get: if validCode(code);
-      allow delete: if validCode(code);
-      allow create, update: if validCode(code)
+      allow get: if validCode(code) && canView(code);
+      allow create, update: if validCode(code) && canEdit(code)
         && request.resource.data.get('title', '') is string
         && request.resource.data.get('title', '').size() <= 300
         && request.resource.data.get('students', []) is list
         && request.resource.data.get('students', []).size() <= 5000
         && request.resource.data.get('matches', []) is list
         && request.resource.data.get('matches', []).size() <= 20000;
+      allow delete: if isFounder(code);
+    }
+
+    // 입장 시 제출하는 해시(본인만 쓰기, 아무도 읽지 못함, 5초에 한 번)
+    match /workspaces/{code}/claims/{uid} {
+      allow read: if false;
+      allow create, update: if validCode(code) && signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['h', 'at', 'legacy'])
+        && request.resource.data.h is string && request.resource.data.h.size() <= 64
+        && request.resource.data.get('legacy', '') is string && request.resource.data.get('legacy', '').size() <= 100
+        && request.resource.data.at == request.time
+        && (resource == null || request.time > resource.data.at + duration.value(5, 's'));
+      // 본인이 지우면 5초 제한이 풀리므로, 지우기는 개설자만(코드 마감·옮기기 때)
+      allow delete: if isFounder(code);
+    }
+
+    // 구성원(개설자·수정자·조회자·승인 대기)
+    match /workspaces/{code}/members/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isFounder(code));
+      allow list: if isFounder(code);
+      allow create: if validCode(code) && signedIn() && request.auth.uid == uid
+        && selfEntryOk(code, request.resource.data);
+      allow update: if validCode(code) && signedIn() && (
+        (request.auth.uid == uid && selfEntryOk(code, request.resource.data))
+        || (isFounder(code) && request.auth.uid != uid && entryShapeOk(request.resource.data))
+      );
+      allow delete: if signedIn() && (request.auth.uid == uid || isFounder(code));
     }
   }
 }
