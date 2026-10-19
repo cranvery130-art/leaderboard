@@ -3634,7 +3634,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
           <ul className="text-sm mb-4 flex flex-col gap-2" style={{ color: "var(--ink)" }}>
             <li>개설자에게 안내받은 <b>코드</b>와 <b>조회 비밀번호</b>를 정확히 입력해야 합니다.</li>
             <li>기본으로 부여되는 권한은 <b>조회 전용</b>입니다. 명단·기록을 입력·수정하려면 아래에서 <b>수정 권한도 함께 신청</b>할 수 있고, 이 경우 개설자의 승인이 필요합니다.</li>
-            <li>신청 시 입력한 이름은 개설자가 구성원을 파악하는 용도로 쓰이며, 개설자는 언제든 접근을 취소할 수 있습니다.</li>
+            <li>신청 시 입력한 이름은 서버에 저장되어 개설자가 구성원을 파악하는 용도로 쓰여요. 실명 대신 <b>별명이나 역할</b>(예: 3반 기록원)로 적어 주세요. 개설자는 언제든 접근을 취소할 수 있습니다.</li>
           </ul>
           <label className="flex items-start gap-2 text-sm mb-4" style={{ color: "var(--ink)" }}>
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5" />
@@ -3672,7 +3672,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="이름 (예: 2학년 3반 김민준)"
+            placeholder="별명이나 역할 (예: 3반 기록원, 김 선생님)"
             className="w-full px-3 py-2.5 rounded-md text-sm outline-none mb-2"
             style={inputStyle}
           />
