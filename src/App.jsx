@@ -3831,7 +3831,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             <input
               value={viewerPasswordNew}
               onChange={(e) => setViewerPasswordNew(e.target.value)}
-              placeholder="비워두면 접근 신청이 꺼져요(나중에 설정에서 켤 수 있어요)"
+              placeholder="비워두면 접근 신청이 꺼져요"
               className="w-full px-3 py-2.5 rounded-md text-sm outline-none mb-3"
               style={inputStyle}
             />
