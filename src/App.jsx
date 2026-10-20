@@ -1187,7 +1187,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                 icon: Settings,
                 title: "설정",
                 points: [
-                  "코드를 복사하거나 다른 코드로 전환할 수 있고, 개설자는 조회·개설자 비밀번호를 여기서 바꿀 수 있어요.",
+                  "코드를 복사하거나 다른 코드로 전환할 수 있고, 개설자는 조회·개설자 비밀번호를 여기서 새로 바꿀 수 있어요(지금 비밀번호는 보여주지 않고, 빈 칸은 그대로 유지). '접근 신청 끄기'로 새 신청을 막고, 이미 들어온 구성원은 '권한 취소'로 내보내요.",
                   "개설자는 '구성원 및 접근 권한 관리'에서 동료 선생님의 수정 권한 신청을 승인·거절하거나 권한을 취소할 수 있어요.",
                   "'데이터 관리'에서 엑셀로 현재 기록을 내려받을 수 있고(누구나 가능), 개설자는 JSON 백업·복원도 할 수 있어요.",
                   "'학생 이름표'에서 이 기기에 저장된 이름을 파일로 내보내 다른 기기로 옮기거나, 다른 기기가 내보낸 이름표 파일을 가져와 이 기기에 반영할 수 있어요.",
@@ -1198,6 +1198,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                 icon: Projector,
                 title: "빔프로젝터 고정",
                 points: [
+                  "평소 화면은 밝은 종이색이고, '빔프로젝터 고정'을 누르면 어두운 전광판으로 바뀌어요.",
                   "화면 위쪽 '빔프로젝터 고정' 버튼을 누르면 월드컵·올림픽 전광판 같은 화려한 연출(금빛 조명, 반짝이는 배경, 빛나는 시상대)로 리더보드가 크게 펼쳐져요. 발표·시상식처럼 빔프로젝터나 전광판으로 띄워두기 좋아요.",
                   "고정 모드에서는 탭 이동이나 편집 버튼이 모두 사라져서, 학생들이 화면 근처에 있어도 실수로 다른 화면을 누르거나 내용을 바꿀 걱정이 없어요.",
                   "오른쪽 아래 '고정 해제' 버튼을 누르고 개설자 전용 비밀번호를 입력해야만 원래 화면으로 돌아갈 수 있어요.",
@@ -3009,7 +3010,7 @@ function SettingsTab({
           </button>
         </div>
         <p className="text-xs mt-2" style={{ color: "var(--ink-2)" }}>
-          다른 기기에서 같은 코드를 입력하면 자동으로 최신 저장 내용을 불러와요. 여러 기기를 동시에 켜두고 쓰는 경우, 방금 다른 기기에서 바꾼 내용은 "최신 데이터 다시 불러오기"로 반영할 수 있습니다.
+          다른 기기에서 같은 코드를 입력하면 자동으로 최신 저장 내용을 불러와요. 다른 기기에서 바꾼 내용은 보통 자동으로 반영돼요. 바로 안 보이면 "최신 데이터 다시 불러오기"를 눌러 주세요.
         </p>
       </div>
 
@@ -3624,6 +3625,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             <li>개설자에게 안내받은 <b>코드</b>와 <b>조회 비밀번호</b>를 정확히 입력해야 합니다.</li>
             <li>기본으로 부여되는 권한은 <b>조회 전용</b>입니다. 명단·기록을 입력·수정하려면 아래에서 <b>수정 권한도 함께 신청</b>할 수 있고, 이 경우 개설자의 승인이 필요합니다.</li>
             <li>신청 시 입력한 이름은 서버에 저장되어 개설자가 구성원을 파악하는 용도로 쓰여요. 실명 대신 <b>별명이나 역할</b>(예: 3반 기록원)로 적어 주세요. 개설자는 언제든 접근을 취소할 수 있습니다.</li>
+            <li>권한은 <b>이 기기(브라우저)</b>에 묶여 있어요. 다른 기기·브라우저에서 들어오거나 인터넷 기록을 지우면 다시 신청해야 해요.</li>
           </ul>
           <label className="flex items-start gap-2 text-sm mb-4" style={{ color: "var(--ink)" }}>
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5" />
@@ -3829,7 +3831,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             <input
               value={viewerPasswordNew}
               onChange={(e) => setViewerPasswordNew(e.target.value)}
-              placeholder="비워두면 동료의 접근 신청 자체가 꺼집니다"
+              placeholder="비워두면 접근 신청이 꺼져요(나중에 설정에서 켤 수 있어요)"
               className="w-full px-3 py-2.5 rounded-md text-sm outline-none mb-3"
               style={inputStyle}
             />
@@ -3853,6 +3855,9 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             </div>
             <p className="text-xs mb-3" style={{ color: "var(--ink-2)" }}>
               다른 기기에서 이 코드와 이 비밀번호를 입력하면 승인 절차 없이 바로 개설자로 들어올 수 있어요. 동료 교사에게는 알려주지 마세요.
+            </p>
+            <p className="text-xs font-medium mb-3" style={{ color: "var(--danger)" }}>
+              비밀번호는 나중에 화면에서 다시 볼 수 없어요. 꼭 따로 적어 두세요.
             </p>
             {error && (
               <p className="text-xs mb-3" style={{ color: "var(--danger)" }}>
@@ -3907,7 +3912,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             </h3>
             <div className="flex flex-col gap-3">
               {[
-                { n: 1, title: "코드 만들기", desc: "원하는 코드(예: 3반체육왕2026)와 비밀번호 두 개(개설자 전용 / 조회용)를 정해 새 코드를 만들어요. 이 코드로 어떤 기기에서든 같은 데이터를 이어서 관리해요." },
+                { n: 1, title: "코드 만들기", desc: "원하는 코드(예: 3반체육왕2026)와 개설자 전용 비밀번호를 정해 새 코드를 만들어요. 동료와 함께 볼 거면 조회 비밀번호도 정해요(선택). 비밀번호는 되돌릴 수 없는 암호로만 저장돼서 잊으면 찾을 수 없으니 따로 적어 두세요. 이 코드로 어떤 기기에서든 같은 데이터를 이어서 관리해요." },
                 { n: 2, title: "명단 등록", desc: "'명단 관리' 탭에서 학생을 엑셀로 한 번에 올리거나 직접 추가해요(엑셀을 다시 올려도 같은 학년·반·번호는 중복되지 않아요). 이름은 이 기기에만 저장되니, 다른 기기에서 열 땐 그 기기에서 한 번 더 등록하거나 '이름표 가져오기'로 옮겨오세요." },
                 { n: 3, title: "경기 기록", desc: "'경기 기록' 탭에서 날짜·종목을 고르고 참가자를 체크해 결과를 입력해요. '전체 승/무/패' 버튼으로 한 팀 전체를 한 번에 처리하거나, '직접 입력'으로 특정 학생에게만 점수를 따로 줄 수도 있어요." },
                 { n: 4, title: "리더보드 공유", desc: "'리더보드' 탭이 자동으로 순위를 계산해요. 화면 위 '빔프로젝터 고정' 버튼을 누르면 리더보드만 크게 보이고 다른 조작이 잠기는 화면으로 바뀌어, 빔프로젝터나 모바일로 안전하게 띄워 보여줄 수 있어요. 되돌아오려면 개설자 비밀번호가 필요해요." },
@@ -3935,6 +3940,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
           <div className="mt-6 pt-4 text-xs flex flex-col gap-1.5" style={{ borderTop: "1px solid var(--line)", color: "var(--ink-2)" }}>
             <p>동료 선생님과 함께 관리하려면, 코드와 조회 비밀번호를 안내해 "접근 신청"으로 들어오게 하세요. 명단·기록 수정까지 맡기려면 신청 시 "수정 권한도 필요합니다"에 체크하도록 안내하면, 개설자가 승인한 뒤 함께 입력할 수 있어요.</p>
             <p>학생 이름은 서버가 아닌 각 기기에만 저장돼요. 여러 기기를 쓴다면 설정 탭의 "이름표 내보내기/가져오기"로 이름을 옮길 수 있습니다.</p>
+            <p>보안 방식이 바뀌어서 예전에 들어와 있던 동료 선생님은 한 번 더 접근 신청을 해 주세요. 개설자는 처음 로그인할 때 자동으로 옮겨져요.</p>
           </div>
         </InfoModal>
       )}
