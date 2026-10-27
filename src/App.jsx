@@ -3435,40 +3435,39 @@ function IntroSplash({ onDone }) {
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Jua&display=swap');
-        .ys-splash .ys-reveal { position: absolute; inset: 0; background: radial-gradient(circle at 50% 46%, #FCE7CB 0%, #F8F3EA 58%); clip-path: circle(0 at 50% 50%); animation: ysReveal 0.85s 0.6s cubic-bezier(0.6,0,0.3,1) forwards; }
+        .ys-splash .ys-reveal { position: absolute; inset: 0; background: radial-gradient(circle at 50% 46%, #FCE7CB 0%, #F8F3EA 58%); clip-path: circle(0 at 50% 50%); animation: ysReveal 0.8s 0.55s cubic-bezier(0.77,0,0.175,1) forwards; }
         .ys-splash .ys-hero { position: absolute; left: 50%; top: 50%; width: 128px; height: 128px; margin: -64px 0 0 -64px; z-index: 3; pointer-events: none; }
-        .ys-splash .ys-hero img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 5px solid #FFFDF8; box-shadow: 0 0 0 4px #E2622B, 0 18px 40px -14px rgba(29,39,71,0.45); animation: ysFacePop 0.55s cubic-bezier(0.2,1.5,0.4,1) both, ysFaceGo 0.5s 0.95s cubic-bezier(0.6,0,0.3,1) forwards; }
-        .ys-splash .ys-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid #E2622B; opacity: 0; animation: ysRing 1s 0.35s ease-out both; }
-        .ys-splash .ys-ring.r2 { border-color: #F2B33D; animation-delay: 0.55s; }
+        .ys-splash .ys-hero img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 5px solid #FFFDF8; box-shadow: 0 0 0 4px #E2622B, 0 18px 40px -14px rgba(29,39,71,0.45); animation: ysFacePop 0.4s cubic-bezier(0.23,1,0.32,1) both, ysFaceGo 0.5s 0.95s cubic-bezier(0.77,0,0.175,1) forwards; }
+        .ys-splash .ys-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid #E2622B; opacity: 0; animation: ysRing 1s 0.3s cubic-bezier(0.23,1,0.32,1) both; }
+        .ys-splash .ys-ring.r2 { border-color: #F2B33D; animation-delay: 0.5s; }
         .ys-splash .ys-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: linear-gradient(180deg, #EFCB95, #E6B57A); border-top: 10px solid #F3DDB8; }
         .ys-splash .ys-floor::before { content: ""; position: absolute; left: 0; right: 0; top: 38%; height: 3px; background: rgba(255,255,255,0.85); }
-        .ys-splash .ys-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 5px; border-radius: 999px; background: #FFFDF8; border: 1px solid #EAE0CF; color: #4B5373; font-size: 13px; font-family: 'IBM Plex Sans KR', sans-serif; box-shadow: 0 8px 20px -12px rgba(29,39,71,0.35); animation: ysUp 0.45s 1.2s ease both; }
+        .ys-splash .ys-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 5px; border-radius: 999px; background: #FFFDF8; border: 1px solid #EAE0CF; color: #4B5373; font-size: 13px; font-family: 'IBM Plex Sans KR', sans-serif; box-shadow: 0 8px 20px -12px rgba(29,39,71,0.35); animation: ysUp 0.4s 1.2s cubic-bezier(0.23,1,0.32,1) both; }
         .ys-splash .ys-chip img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #E2622B; object-fit: cover; }
         .ys-splash .ys-chip b { color: #1D2747; }
-        .ys-splash .ys-board { position: relative; margin-top: 22px; width: min(78vw, 360px); padding: 18px 20px 0; border-radius: 22px; background: #FFFDF8; border: 1px solid #EAE0CF; box-shadow: 0 22px 50px -22px rgba(29,39,71,0.35); animation: ysPop 0.6s 1.05s cubic-bezier(0.22,1,0.36,1) both; }
+        .ys-splash .ys-board { position: relative; margin-top: 22px; width: min(78vw, 360px); padding: 18px 20px 0; border-radius: 22px; background: #FFFDF8; border: 1px solid #EAE0CF; box-shadow: 0 22px 50px -22px rgba(29,39,71,0.35); animation: ysPop 0.45s 1.05s cubic-bezier(0.23,1,0.32,1) both; }
         .ys-splash .ys-board-head { display: flex; align-items: center; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; color: #6B7088; }
         .ys-splash .ys-live { display: inline-flex; align-items: center; gap: 6px; color: #E2622B; }
-        .ys-splash .ys-live i { width: 7px; height: 7px; border-radius: 50%; background: #E2622B; animation: ysBlink 1.2s ease-in-out infinite; }
+        .ys-splash .ys-live i { width: 7px; height: 7px; border-radius: 50%; background: #E2622B; }
         .ys-splash .ys-podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; height: 150px; margin-top: 10px; }
         .ys-splash .ys-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
-        .ys-splash .ys-medal-wrap { animation: ysUp 0.45s ease both; }
-        .ys-splash .ys-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #1D2747; font-size: 15px; margin: 4px 0; animation: ysUp 0.45s ease both; }
-        .ys-splash .ys-bar { width: 100%; border-radius: 10px 10px 0 0; transform-origin: bottom; animation: ysGrow 0.7s cubic-bezier(0.22,1,0.36,1) both; }
-        .ys-splash .ys-title { font-family: 'Jua', sans-serif; color: #1D2747; font-size: clamp(2.2rem, 8vw, 3.4rem); line-height: 1.1; margin-top: 26px; animation: ysUp 0.55s ease 1.3s both; }
+        .ys-splash .ys-medal-wrap { animation: ysUp 0.4s cubic-bezier(0.23,1,0.32,1) both; }
+        .ys-splash .ys-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #1D2747; font-size: 15px; margin: 4px 0; animation: ysUp 0.4s cubic-bezier(0.23,1,0.32,1) both; }
+        .ys-splash .ys-bar { width: 100%; border-radius: 10px 10px 0 0; transform-origin: bottom; animation: ysGrow 0.6s cubic-bezier(0.23,1,0.32,1) both; }
+        .ys-splash .ys-title { font-family: 'Jua', sans-serif; color: #1D2747; font-size: clamp(2.2rem, 8vw, 3.4rem); line-height: 1.1; margin-top: 26px; animation: ysUp 0.45s cubic-bezier(0.23,1,0.32,1) 1.3s both; }
         .ys-splash .ys-title span { color: #E2622B; }
-        .ys-splash .ys-sub { font-family: 'IBM Plex Sans KR', sans-serif; color: #4B5373; font-size: clamp(0.95rem, 2.4vw, 1.1rem); margin-top: 10px; animation: ysUp 0.55s ease 1.45s both; }
-        .ys-splash .ys-load { width: 130px; height: 5px; border-radius: 99px; background: #EAE0CF; overflow: hidden; margin-top: 18px; animation: ysUp 0.4s 1.5s ease both; }
-        .ys-splash .ys-load i { display: block; height: 100%; background: linear-gradient(100deg, #E2622B, #EE8A3A 55%, #F2B33D); animation: ysLoad 3s ease both; }
+        .ys-splash .ys-sub { font-family: 'IBM Plex Sans KR', sans-serif; color: #4B5373; font-size: clamp(0.95rem, 2.4vw, 1.1rem); margin-top: 10px; animation: ysUp 0.45s cubic-bezier(0.23,1,0.32,1) 1.45s both; }
+        .ys-splash .ys-load { width: 130px; height: 5px; border-radius: 99px; background: #EAE0CF; overflow: hidden; margin-top: 18px; animation: ysUp 0.4s 1.5s cubic-bezier(0.23,1,0.32,1) both; }
+        .ys-splash .ys-load i { display: block; height: 100%; background: linear-gradient(100deg, #E2622B, #EE8A3A 55%, #F2B33D); animation: ysLoad 3s linear both; }
         .ys-splash .ys-sign { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.3em; color: #4B5373; }
         @keyframes ysReveal { to { clip-path: circle(150vmax at 50% 50%); } }
-        @keyframes ysFacePop { from { transform: scale(0); } to { transform: scale(1); } }
+        @keyframes ysFacePop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @keyframes ysFaceGo { to { transform: translate(var(--tx, 0), var(--ty, -30vh)) scale(var(--ts, 0.23)); opacity: 0; } }
         @keyframes ysRing { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(4.2); opacity: 0; } }
-        @keyframes ysUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-        @keyframes ysPop { 0% { opacity: 0; transform: scale(0.9) translateY(16px); } 100% { opacity: 1; transform: none; } }
+        @keyframes ysUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        @keyframes ysPop { 0% { opacity: 0; transform: scale(0.95) translateY(12px); } 100% { opacity: 1; transform: none; } }
         @keyframes ysGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
         @keyframes ysLoad { from { width: 0; } to { width: 100%; } }
-        @keyframes ysBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         @media (max-height: 560px) { .ys-splash .ys-floor { display: none; } .ys-splash .ys-podium { height: 110px; } }
       `}</style>
       <div className="ys-reveal" aria-hidden="true">
