@@ -1114,6 +1114,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
           {saveState === "saved" && "자동 저장됨"}
           {saveState === "error" && "저장 실패 — 이 기기에서 다시 시도해 주세요"}
         </span>
+        <span className="flex items-center gap-4">
         <button
           onClick={() =>
             openConfirm({
@@ -1134,6 +1135,16 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
         >
           전체 초기화
         </button>
+        <a
+          href="https://yangssaem.vercel.app/privacy/#score"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+          style={{ color: "var(--ink-2)" }}
+        >
+          개인정보 안내
+        </a>
+        </span>
       </footer>
 
       {confirmModal && (
@@ -1192,6 +1203,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                   "'데이터 관리'에서 엑셀로 현재 기록을 내려받을 수 있고(누구나 가능), 개설자는 JSON 백업·복원도 할 수 있어요.",
                   "'학생 이름표'에서 이 기기에 저장된 이름을 파일로 내보내 다른 기기로 옮기거나, 다른 기기가 내보낸 이름표 파일을 가져와 이 기기에 반영할 수 있어요.",
                   "시즌이 끝나면 개설자가 '마감'으로 이 코드의 모든 데이터를 정리하고 첫 화면으로 돌아갈 수 있어요(백업 필수).",
+                  "받는 정보·저장하는 곳·지우는 법은 화면 맨 아래 '개인정보 안내'(양쌤스튜디오 홈페이지)에 정리돼 있어요.",
                 ],
               },
               {
@@ -3876,6 +3888,15 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             </button>
           </>
         )}
+        <a
+          href="https://yangssaem.vercel.app/privacy/#score"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-xs underline mt-5"
+          style={{ color: "var(--ink-2)" }}
+        >
+          개인정보 안내 · 받는 정보와 지우는 법
+        </a>
       </div>
 
       {showGuide && (
@@ -3939,6 +3960,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
           <div className="mt-6 pt-4 text-xs flex flex-col gap-1.5" style={{ borderTop: "1px solid var(--line)", color: "var(--ink-2)" }}>
             <p>동료 선생님과 함께 관리하려면, 코드와 조회 비밀번호를 안내해 "접근 신청"으로 들어오게 하세요. 명단·기록 수정까지 맡기려면 신청 시 "수정 권한도 필요합니다"에 체크하도록 안내하면, 개설자가 승인한 뒤 함께 입력할 수 있어요.</p>
             <p>학생 이름은 서버가 아닌 각 기기에만 저장돼요. 여러 기기를 쓴다면 설정 탭의 "이름표 내보내기/가져오기"로 이름을 옮길 수 있습니다.</p>
+            <p>받는 정보·저장하는 곳·지우는 법은 <a href="https://yangssaem.vercel.app/privacy/#score" target="_blank" rel="noopener noreferrer" className="underline">개인정보 안내</a>에 정리돼 있어요.</p>
             <p>보안 방식이 바뀌어서 예전에 들어와 있던 동료 선생님은 한 번 더 접근 신청을 해 주세요. 개설자는 처음 로그인할 때 자동으로 옮겨져요.</p>
           </div>
         </InfoModal>
