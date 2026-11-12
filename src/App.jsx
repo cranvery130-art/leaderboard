@@ -616,10 +616,10 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
         setShowUnlockModal(false);
         setUnlockPassword("");
       } else {
-        setUnlockError("개설자 비밀번호가 올바르지 않습니다. (연달아 시도하면 5초 뒤에 다시 해 주세요)");
+        setUnlockError("개설자 비밀번호가 올바르지 않아요. (연달아 시도하면 5초 뒤에 다시 해 주세요)");
       }
     } catch (e) {
-      setUnlockError("확인 중 오류가 발생했습니다. 다시 시도해주세요.");
+      setUnlockError("확인 중 오류가 발생했어요. 다시 시도해주세요.");
     } finally {
       setUnlockBusy(false);
     }
@@ -628,6 +628,16 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
   function showToast(msg, type = "ok") {
     setToast({ msg, type });
   }
+  // 서버 기록 문서가 한도(약 1MB)의 80%를 넘으면 접속 중 한 번만 알려요(storage.js writeWorkspaceData 참고).
+  useEffect(() => {
+    let warned = false;
+    const onNearLimit = () => {
+      if (warned) return; warned = true;
+      setToast({ msg: "저장 공간이 거의 찼어요. 엑셀로 내보낸 뒤 지난 기록을 지우거나 마감해 주세요. 가득 차면 새 기록이 저장되지 않아요.", type: "warn" });
+    };
+    window.addEventListener("lb-data-near-limit", onNearLimit);
+    return () => window.removeEventListener("lb-data-near-limit", onNearLimit);
+  }, []);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 2600);
@@ -725,7 +735,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
     // 데이터는 실시간으로 반영되므로, 이 버튼은 접근 권한(승인 여부) 상태만 다시 확인합니다.
     showToast("접근 권한을 확인하는 중...", "ok");
     if (onRefreshRole) await onRefreshRole();
-    showToast("최신 상태를 확인했습니다.", "ok");
+    showToast("최신 상태를 확인했어요.", "ok");
   }
 
   // 승인 대기 중이거나 조회/수정 권한자인 경우, 개설자가 승인·거절·권한취소를 하면
@@ -796,7 +806,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
   function removeMatch(id) {
     openConfirm({
       title: "경기 기록 삭제",
-      message: "이 경기 기록을 삭제할까요? 되돌릴 수 없습니다.",
+      message: "이 경기 기록을 삭제할까요? 되돌릴 수 없어요.",
       confirmLabel: "삭제",
       danger: true,
       onConfirm: () => {
@@ -892,7 +902,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                 </h3>
               </div>
               <p className="text-xs mb-4" style={{ color: "var(--ink-2)" }}>
-                개설자 전용 비밀번호를 입력하면 고정 모드가 해제되고 원래 화면으로 돌아갑니다.
+                개설자 전용 비밀번호를 입력하면 고정 모드가 해제되고 원래 화면으로 돌아가요.
               </p>
               <input
                 type="password"
@@ -1016,7 +1026,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
               </button>
             )}
             <p className="text-xs md:text-sm mt-1.5 max-w-lg" style={{ color: "var(--accent-2)", lineHeight: 1.6 }}>
-              개인전과 팀전 점수를 모바일로 빠르게 기록하고, 전광판처럼 큰 화면에 띄워 실시간 순위를 보여주는 프로그램입니다.
+              개인전과 팀전 점수를 모바일로 빠르게 기록하고, 전광판처럼 큰 화면에 띄워 실시간 순위를 보여주는 프로그램이에요.
             </p>
           </div>
         </div>
@@ -1054,7 +1064,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
           >
             <KeyRound size={13} />
             {myName}님 · {ROLE_LABEL[role]}로 접속 중
-            {role === "pending" && " (수정 권한 승인 대기 중이에요. 승인 전까지는 조회만 가능합니다.)"}
+            {role === "pending" && " (수정 권한 승인 대기 중이에요. 승인 전까지는 조회만 가능해요.)"}
           </div>
         )}
         {tab === "leaderboard" && <LeaderboardTab sorted={sorted} groups={groups} podiumOrder={podiumOrder} students={students} />}
@@ -1119,7 +1129,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
           onClick={() =>
             openConfirm({
               title: "전체 초기화",
-              message: "명단과 모든 경기 기록을 초기화할까요? 되돌릴 수 없습니다.",
+              message: "명단과 모든 경기 기록을 초기화할까요? 되돌릴 수 없어요.",
               confirmLabel: "초기화",
               danger: true,
               onConfirm: () => {
@@ -1190,7 +1200,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                   "'승점 기준 설정'에서 승/무/패/부정행위 점수를 직접 정할 수 있고, '종목별 기준'으로 바꾸면 종목마다 다른 점수도 줄 수 있어요(예: 축구는 승리 3점, 배드민턴은 2점). 종목별 기준은 표에서 종목을 직접 추가·삭제해요.",
                   "참가자별 결과 선택에는 '직접 입력'도 있어서, 정해진 승/무/패 점수 대신 그 학생·그 경기에만 적용할 점수를 바로 입력할 수 있어요.",
                   "'전체 승 / 전체 무 / 전체 패 / 전체 부정행위' 버튼으로, 지금 화면에 보이는(필터된) 학생 전체를 한 번에 체크하고 같은 결과로 일괄 지정할 수 있어요. '전체 해제'로 체크를 한 번에 풀 수도 있어요.",
-                  "일부 학생만 골라 같은 결과를 주고 싶다면, 원하는 학생만 체크(전체선택·부분체크·해제 자유롭게 조합)한 뒤 '체크된 학생에게 결과 일괄 적용'에서 결과를 골라 적용하세요. 한 명씩 드롭다운을 열지 않아도 됩니다.",
+                  "일부 학생만 골라 같은 결과를 주고 싶다면, 원하는 학생만 체크(전체선택·부분체크·해제 자유롭게 조합)한 뒤 '체크된 학생에게 결과 일괄 적용'에서 결과를 골라 적용하세요. 한 명씩 드롭다운을 열지 않아도 돼요.",
                   "등록한 경기는 목록의 연필 아이콘으로 언제든 내용을 고쳐 다시 저장하거나, 휴지통 아이콘으로 삭제할 수 있어요.",
                 ],
               },
@@ -1233,7 +1243,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
             ))}
 
             <div className="pt-3 text-xs" style={{ borderTop: "1px solid var(--line)", color: "var(--ink-2)" }}>
-              여러 기기에서 동시에 열어두면, 다른 사람이 저장한 내용이 자동으로 화면에 반영돼요. 접근 권한이 바뀌면(승인·취소) 그것도 실시간으로 반영됩니다. (단, 학생 이름은 서버로 동기화되지 않아 기기마다 따로 등록해야 해요.)
+              여러 기기에서 동시에 열어두면, 다른 사람이 저장한 내용이 자동으로 화면에 반영돼요. 접근 권한이 바뀌면(승인·취소) 그것도 실시간으로 반영돼요. (단, 학생 이름은 서버로 동기화되지 않아 기기마다 따로 등록해야 해요.)
             </div>
           </div>
         </InfoModal>
@@ -1261,11 +1271,11 @@ function EmptyState({ icon: Icon, title, body }) {
 function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
   const isDesktop = useIsDesktop();
   if (students.length === 0) {
-    return <EmptyState icon={Users} title="명단부터 등록해 주세요" body="리더보드는 등록된 학생과 경기 기록을 바탕으로 계산됩니다." />;
+    return <EmptyState icon={Users} title="명단부터 등록해 주세요" body="리더보드는 등록된 학생과 경기 기록을 바탕으로 계산돼요." />;
   }
   if (sorted.every((r) => r.played === 0)) {
     return (
-      <EmptyState icon={CalendarDays} title="아직 등록된 경기 결과가 없어요" body="경기 기록 탭에서 첫 경기를 등록하면 순위가 나타납니다." />
+      <EmptyState icon={CalendarDays} title="아직 등록된 경기 결과가 없어요" body="경기 기록 탭에서 첫 경기를 등록하면 순위가 나타나요." />
     );
   }
 
@@ -1434,10 +1444,10 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
 function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
   const isDesktop = useIsDesktop();
   if (students.length === 0) {
-    return <EmptyState icon={Users} title="명단부터 등록해 주세요" body="리더보드는 등록된 학생과 경기 기록을 바탕으로 계산됩니다." />;
+    return <EmptyState icon={Users} title="명단부터 등록해 주세요" body="리더보드는 등록된 학생과 경기 기록을 바탕으로 계산돼요." />;
   }
   if (sorted.every((r) => r.played === 0)) {
-    return <EmptyState icon={CalendarDays} title="아직 등록된 경기 결과가 없어요" body="경기 기록 탭에서 첫 경기를 등록하면 순위가 나타납니다." />;
+    return <EmptyState icon={CalendarDays} title="아직 등록된 경기 결과가 없어요" body="경기 기록 탭에서 첫 경기를 등록하면 순위가 나타나요." />;
   }
 
   const heights = { center: "h-36 md:h-72", left: "h-24 md:h-52", right: "h-20 md:h-44" };
@@ -1631,7 +1641,7 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
   function bulkSetGender(gender) {
     if (selected.size === 0) return;
     setStudents(students.map((s) => (selected.has(s.id) ? { ...s, gender } : s)));
-    showToast(`${selected.size}명의 성별을 ${gender === "M" ? "남" : "여"}로 변경했습니다.`, "ok");
+    showToast(`${selected.size}명의 성별을 ${gender === "M" ? "남" : "여"}로 변경했어요.`, "ok");
     setSelected(new Set());
   }
 
@@ -1639,14 +1649,14 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
     if (selected.size === 0) return;
     openConfirm({
       title: "선택한 학생 삭제",
-      message: `${selected.size}명을 명단에서 삭제할까요? 경기 기록에서도 함께 제거됩니다. 되돌릴 수 없습니다.`,
+      message: `${selected.size}명을 명단에서 삭제할까요? 경기 기록에서도 함께 제거돼요. 되돌릴 수 없어요.`,
       confirmLabel: "삭제",
       danger: true,
       onConfirm: () => {
         const ids = Array.from(selected);
         setStudents(students.filter((s) => !selected.has(s.id)));
         ids.forEach((id) => removeStudentFromMatches(id));
-        showToast(`${ids.length}명을 삭제했습니다.`, "ok");
+        showToast(`${ids.length}명을 삭제했어요.`, "ok");
         setSelected(new Set());
         closeConfirm();
       },
@@ -1666,7 +1676,7 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
     const next = [...students, candidate];
     setStudents(next);
     setForm((f) => ({ ...f, number: "", name: "" }));
-    showToast(`${form.name} 학생을 추가했습니다.`, "ok");
+    showToast(`${form.name} 학생을 추가했어요.`, "ok");
   }
 
   function removeStudent(id) {
@@ -1691,7 +1701,7 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
       forgetLocalNames([...lastBulk.addedIds, ...lastBulk.updated.filter((u) => !u.name).map((u) => u.id)]);
     }
     setLastBulk(null);
-    showToast("방금 올린 명단을 되돌렸습니다.", "ok");
+    showToast("방금 올린 명단을 되돌렸어요.", "ok");
   }
 
   // 엑셀·붙여넣기 공통: 같은 학년·반·번호는 중복 추가하지 않고 기존 학생을 갱신합니다.
@@ -1757,7 +1767,7 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
         showToast(`${summary} (인식 실패: ${problemFiles.join(", ")})`, "warn");
       }
     } else {
-      showToast("엑셀 내용을 인식하지 못했습니다. 학년·반·번호·이름·성별 열을 확인해 주세요.", "warn");
+      showToast("엑셀 내용을 인식하지 못했어요. 학년·반·번호·이름·성별 열을 확인해 주세요.", "warn");
     }
   }
 
@@ -1794,7 +1804,7 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
         </div>
         {students.length === 0 && (
           <div className="px-4 py-6 text-sm text-center" style={{ color: "var(--ink-2)" }}>
-            등록된 학생이 없습니다.
+            등록된 학생이 없어요.
           </div>
         )}
         {students
@@ -2037,7 +2047,7 @@ function RosterManager({ students, setStudents, showToast, openConfirm, closeCon
         <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--line)" }}>
           {filtered.length === 0 && (
             <div className="px-3 py-4 text-sm text-center" style={{ color: "var(--ink-2)" }}>
-              학생이 없습니다.
+              학생이 없어요.
             </div>
           )}
           {filtered.map((s, i) => (
@@ -2382,8 +2392,8 @@ function MatchesTab({
         </div>
         <p className="text-xs mb-3" style={{ color: "var(--ink-2)" }}>
           {pointsMode === "global"
-            ? "모든 종목에 같은 점수 기준을 적용해요. 값을 바꾸면 전체 순위에 바로 반영됩니다."
-            : "종목마다 다른 점수 기준을 정할 수 있어요. 예: 축구는 승 3점, 배드민턴은 승 2점처럼 다르게 설정 가능합니다."}
+            ? "모든 종목에 같은 점수 기준을 적용해요. 값을 바꾸면 전체 순위에 바로 반영돼요."
+            : "종목마다 다른 점수 기준을 정할 수 있어요. 예: 축구는 승 3점, 배드민턴은 승 2점처럼 다르게 설정 가능해요."}
         </p>
 
         {pointsMode === "global" ? (
@@ -2512,7 +2522,7 @@ function MatchesTab({
             </select>
             {pointsMode === "perEvent" && eventOptions.length === 0 && (
               <p className="text-xs mt-2" style={{ color: "var(--ink-2)" }}>
-                위 "종목별 기준"에서 종목을 먼저 추가하면 여기서 바로 고를 수 있어요. 지금은 직접 입력한 종목명으로 등록되고, 기본 점수 기준이 적용됩니다.
+                위 "종목별 기준"에서 종목을 먼저 추가하면 여기서 바로 고를 수 있어요. 지금은 직접 입력한 종목명으로 등록되고, 기본 점수 기준이 적용돼요.
               </p>
             )}
             {event === "__custom__" && (
@@ -2876,18 +2886,18 @@ function SettingsTab({
 
   function exportExcelNow() {
     downloadExcel("");
-    showToast("엑셀 파일을 다운로드했습니다.", "ok");
+    showToast("엑셀 파일을 다운로드했어요.", "ok");
   }
 
   function exportBackup() {
     downloadBackup("");
-    showToast("복원용 JSON 파일을 다운로드했습니다.", "ok");
+    showToast("복원용 JSON 파일을 다운로드했어요.", "ok");
   }
 
   function downloadBackupBeforeCloseout() {
     downloadExcel("-마감전");
     setBackedUp(true);
-    showToast("엑셀 파일을 다운로드했습니다.", "ok");
+    showToast("엑셀 파일을 다운로드했어요.", "ok");
   }
 
   function handleLeaveConfirm(withExcel) {
@@ -2905,12 +2915,12 @@ function SettingsTab({
       try {
         const payload = JSON.parse(evt.target.result);
         if (!payload || !Array.isArray(payload.students)) {
-          showToast("올바른 백업 파일이 아닙니다.", "warn");
+          showToast("올바른 백업 파일이 아니에요.", "warn");
           return;
         }
         setPendingImport(payload);
       } catch (err) {
-        showToast("파일을 읽는 중 오류가 발생했습니다.", "warn");
+        showToast("파일을 읽는 중 오류가 발생했어요.", "warn");
       }
     };
     reader.readAsText(file);
@@ -2919,14 +2929,14 @@ function SettingsTab({
   function confirmImport() {
     applyLoadedData(pendingImport);
     setPendingImport(null);
-    showToast("백업 파일을 불러왔습니다.", "ok");
+    showToast("백업 파일을 불러왔어요.", "ok");
   }
 
   function exportNameMap() {
     const map = getNameMap(workspaceCode);
     const count = Object.keys(map).length;
     if (count === 0) {
-      showToast("이 기기에 저장된 이름표가 없습니다.", "warn");
+      showToast("이 기기에 저장된 이름표가 없어요.", "warn");
       return;
     }
     const blob = new Blob([JSON.stringify(map, null, 2)], { type: "application/json" });
@@ -2938,7 +2948,7 @@ function SettingsTab({
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    showToast(`이름표 ${count}건을 내보냈습니다.`, "ok");
+    showToast(`이름표 ${count}건을 내보냈어요.`, "ok");
   }
 
   function handleImportNameMapFile(e) {
@@ -2950,14 +2960,14 @@ function SettingsTab({
       try {
         const parsed = JSON.parse(evt.target.result);
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          showToast("올바른 이름표 파일이 아닙니다.", "warn");
+          showToast("올바른 이름표 파일이 아니에요.", "warn");
           return;
         }
         mergeNameMap(workspaceCode, parsed);
         refreshNamesFromLocalMap();
-        showToast(`이름표 ${Object.keys(parsed).length}건을 이 기기에 반영했습니다.`, "ok");
+        showToast(`이름표 ${Object.keys(parsed).length}건을 이 기기에 반영했어요.`, "ok");
       } catch (err) {
-        showToast("파일을 읽는 중 오류가 발생했습니다.", "warn");
+        showToast("파일을 읽는 중 오류가 발생했어요.", "warn");
       }
     };
     reader.readAsText(file);
@@ -2965,9 +2975,9 @@ function SettingsTab({
 
   function handleCloseoutClick() {
     openConfirm({
-      title: "정말 마감하시겠습니까?",
-      message: `기록 ${matchCount}건과 학생 명단 ${studentCount}명이 영구히 삭제되고, 이 코드 자체도 사라져 첫 화면으로 돌아갑니다. 이 작업은 되돌릴 수 없습니다.`,
-      confirmLabel: "네, 마감합니다",
+      title: "정말 마감할까요?",
+      message: `기록 ${matchCount}건과 학생 명단 ${studentCount}명이 영구히 삭제되고, 이 코드 자체도 사라져 첫 화면으로 돌아가요. 이 작업은 되돌릴 수 없어요.`,
+      confirmLabel: "네, 마감할게요",
       danger: true,
       onConfirm: async () => {
         closeConfirm();
@@ -2985,7 +2995,7 @@ function SettingsTab({
           <KeyRound size={17} style={{ color: "var(--accent)" }} /> 코드값 설정 및 관리
         </h3>
         <p className="text-xs mb-3" style={{ color: "var(--ink-2)" }}>
-          이 코드를 입력하면 데스크톱이든 모바일이든 어떤 기기에서도 같은 데이터를 이어서 관리할 수 있어요. 동료 선생님과 코드를 공유하면 함께 관리할 수도 있습니다.
+          이 코드를 입력하면 데스크톱이든 모바일이든 어떤 기기에서도 같은 데이터를 이어서 관리할 수 있어요. 동료 선생님과 코드를 공유하면 함께 관리할 수도 있어요.
         </p>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: "var(--surface-2)", color: "var(--ink)" }}>
@@ -3065,8 +3075,8 @@ function SettingsTab({
         </div>
         <p className="text-xs" style={{ color: "var(--ink-2)" }}>
           {canManageAccess
-            ? "엑셀 파일은 리더보드·명단·경기기록이 각각의 시트로 정리되어 열람·제출·인쇄용으로 좋아요. 이 앱에 나중에 다시 불러오려면(복원) JSON 파일을 이용해 주세요. 불러오기를 하면 지금 화면의 명단·기록이 파일 내용으로 완전히 바뀝니다(되돌릴 수 없어요)."
-            : "JSON 백업(내보내기·불러오기)은 개설자만 할 수 있습니다. 여러 명이 각자 따로 불러오면 서로 다른 시점의 기록이 뒤섞일 수 있어서, 혼선을 막기 위해 개설자 한 명으로 창구를 좁혀두었습니다."}
+            ? "엑셀 파일은 리더보드·명단·경기기록이 각각의 시트로 정리되어 열람·제출·인쇄용으로 좋아요. 이 앱에 나중에 다시 불러오려면(복원) JSON 파일을 이용해 주세요. 불러오기를 하면 지금 화면의 명단·기록이 파일 내용으로 완전히 바뀌어요(되돌릴 수 없어요)."
+            : "JSON 백업(내보내기·불러오기)은 개설자만 할 수 있어요. 여러 명이 각자 따로 불러오면 서로 다른 시점의 기록이 뒤섞일 수 있어서, 혼선을 막기 위해 개설자 한 명으로 창구를 좁혀두었어요."}
         </p>
       </div>
 
@@ -3075,7 +3085,7 @@ function SettingsTab({
           학생 이름표 (이 기기 전용)
         </h3>
         <p className="text-xs mb-3" style={{ color: "var(--ink-2)" }}>
-          학생 이름은 서버(Firebase)에는 저장되지 않고, 이 기기(브라우저)에만 남습니다. 다른 기기에서는 학년-반-번호만 보이니, 아래로 이름표 파일을 내보내 다른 기기에 옮겨보세요.
+          학생 이름은 서버(Firebase)에는 저장되지 않고, 이 기기(브라우저)에만 남아요. 다른 기기에서는 학년-반-번호만 보이니, 아래로 이름표 파일을 내보내 다른 기기에 옮겨보세요.
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -3102,10 +3112,10 @@ function SettingsTab({
           <Trash2 size={17} /> 마감
         </h3>
         <p className="text-xs mb-3" style={{ color: "var(--ink-2)" }}>
-          시즌이나 대회가 완전히 끝났다면, 학생 명단과 경기 기록을 계속 저장해 둘 필요가 없습니다. 마감하면 이 코드에 담긴 모든 데이터와 코드 자체가 삭제되고 첫 화면으로 돌아갑니다.
+          시즌이나 대회가 완전히 끝났다면, 학생 명단과 경기 기록을 계속 저장해 둘 필요가 없어요. 마감하면 이 코드에 담긴 모든 데이터와 코드 자체가 삭제되고 첫 화면으로 돌아가요.
         </p>
         <div className="text-sm mb-3" style={{ color: "var(--ink)" }}>
-          현재 <b>학생 {studentCount}명</b>, <b>경기 {matchCount}건</b>이 저장되어 있습니다.
+          현재 <b>학생 {studentCount}명</b>, <b>경기 {matchCount}건</b>이 저장되어 있어요.
         </div>
 
         {!isEmpty && (
@@ -3122,7 +3132,7 @@ function SettingsTab({
             </button>
             {backedUp && (
               <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: "var(--ink)" }}>
-                <Check size={13} /> 엑셀 파일을 받았습니다. 이제 마감할 수 있습니다.
+                <Check size={13} /> 엑셀 파일을 받았어요. 이제 마감할 수 있어요.
               </p>
             )}
           </div>
@@ -3141,7 +3151,7 @@ function SettingsTab({
         </button>
         {!isEmpty && !backedUp && (
           <p className="text-xs mt-1.5" style={{ color: "var(--ink-2)" }}>
-            먼저 위에서 엑셀 파일을 받아야 눌러집니다.
+            먼저 위에서 엑셀 파일을 받아야 눌러져요.
           </p>
         )}
       </div>
@@ -3151,7 +3161,7 @@ function SettingsTab({
           <Trash2 size={17} /> 마감
         </h3>
         <p className="text-xs" style={{ color: "var(--ink-2)" }}>
-          마감(전체 데이터·코드 삭제)은 개설자만 할 수 있습니다. 시즌이 끝나 정리가 필요하면 개설자 선생님께 요청해 주세요.
+          마감(전체 데이터·코드 삭제)은 개설자만 할 수 있어요. 시즌이 끝나 정리가 필요하면 개설자 선생님께 요청해 주세요.
         </p>
       </div>
       )}
@@ -3159,7 +3169,7 @@ function SettingsTab({
       {pendingImport && (
         <ConfirmModal
           title="백업 파일 불러오기"
-          message={`이 파일로 불러오면 현재 학생 ${students.length}명의 데이터가 백업 파일 속 학생 ${pendingImport.students.length}명 데이터로 완전히 대체됩니다. 계속할까요?`}
+          message={`이 파일로 불러오면 현재 학생 ${students.length}명의 데이터가 백업 파일 속 학생 ${pendingImport.students.length}명 데이터로 완전히 대체돼요. 계속할까요?`}
           confirmLabel="불러오기"
           danger
           onConfirm={confirmImport}
@@ -3182,7 +3192,7 @@ function SettingsTab({
               <LogOut size={17} /> 코드 나가기
             </h3>
             <p className="text-sm mb-4" style={{ color: "var(--ink)" }}>
-              나가기 전에 지금까지 기록을 엑셀 파일로 저장해둘 수 있어요. 데이터 자체는 코드에 계속 남아 있으니, 나중에 같은 코드로 다시 들어오면 이어서 볼 수 있습니다.
+              나가기 전에 지금까지 기록을 엑셀 파일로 저장해둘 수 있어요. 데이터 자체는 코드에 계속 남아 있으니, 나중에 같은 코드로 다시 들어오면 이어서 볼 수 있어요.
             </p>
             <div className="flex flex-col gap-2">
               <button
@@ -3235,12 +3245,12 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
       if (changed) {
         setViewerPwDraft("");
         setFounderPwDraft("");
-        showToast("비밀번호를 바꿨습니다.", "ok");
+        showToast("비밀번호를 바꿨어요.", "ok");
       } else {
         showToast("바꿀 비밀번호를 입력해 주세요.", "warn");
       }
     } catch (e) {
-      showToast("비밀번호를 바꾸지 못했습니다. 다시 시도해 주세요.", "warn");
+      showToast("비밀번호를 바꾸지 못했어요. 다시 시도해 주세요.", "warn");
     } finally {
       setSavingPw(false);
     }
@@ -3248,12 +3258,12 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
 
   async function decide(id, status) {
     await updateMember(workspaceCode, id, { status, decidedAt: Date.now() });
-    showToast(status === "approved" ? "승인했습니다." : "거절했습니다.", "ok");
+    showToast(status === "approved" ? "승인했어요." : "거절했어요.", "ok");
   }
 
   async function revoke(id) {
     await updateMember(workspaceCode, id, { status: "denied", decidedAt: Date.now() });
-    showToast("접근 권한을 취소했습니다.", "ok");
+    showToast("접근 권한을 취소했어요.", "ok");
   }
 
   if (!members) {
@@ -3277,7 +3287,7 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
         구성원 및 접근 권한 관리
       </h3>
       <p className="text-xs mb-3" style={{ color: "var(--ink-2)" }}>
-        조회 비밀번호를 알면 누구나 열람 신청을 해서 바로 조회할 수 있어요. 명단·기록을 수정하려면 개설자인 선생님의 승인이 한 번 더 필요합니다.
+        조회 비밀번호를 알면 누구나 열람 신청을 해서 바로 조회할 수 있어요. 명단·기록을 수정하려면 개설자인 선생님의 승인이 한 번 더 필요해요.
       </p>
       <p className="text-xs mb-3" style={{ color: "var(--ink-2)" }}>
         비밀번호는 되돌릴 수 없는 암호(해시)로만 저장돼서 이 화면에서도 지금 비밀번호를 보여줄 수 없어요. 바꿀 때만 새 비밀번호를 적어 주세요(빈 칸은 그대로 유지).
@@ -3339,7 +3349,7 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
         </p>
         {pending.length === 0 ? (
           <p className="text-xs" style={{ color: "var(--ink-2)" }}>
-            대기 중인 수정 권한 신청이 없습니다.
+            대기 중인 수정 권한 신청이 없어요.
           </p>
         ) : (
           <div className="flex flex-col gap-1.5">
@@ -3368,7 +3378,7 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
         </p>
         {approved.length === 0 ? (
           <p className="text-xs" style={{ color: "var(--ink-2)" }}>
-            아직 승인된 구성원이 없습니다.
+            아직 승인된 구성원이 없어요.
           </p>
         ) : (
           <div className="flex flex-col gap-1.5">
@@ -3567,12 +3577,12 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
     try {
       const result = await onFounderLogin(clean, founderPassword);
       if (!result.ok) {
-        if (result.reason === "bad-code") setError("존재하지 않는 코드입니다. 아래 '새 코드 만들기'로 새로 만들 수 있어요.");
-        else setError("개설자 전용 비밀번호가 올바르지 않습니다. 연달아 시도했다면 5초 뒤에 다시 해 주세요.");
+        if (result.reason === "bad-code") setError("존재하지 않는 코드예요. 아래 '새 코드 만들기'로 새로 만들 수 있어요.");
+        else setError("개설자 전용 비밀번호가 올바르지 않아요. 연달아 시도했다면 5초 뒤에 다시 해 주세요.");
       }
     } catch (e) {
       console.error("founder login failed:", e);
-      setError("연결에 실패했습니다 (" + (e && e.code ? e.code : "알 수 없는 오류") + "). Firebase 설정을 확인하고 다시 시도해 주세요.");
+      setError("연결에 실패했어요 (" + (e && e.code ? e.code : "알 수 없는 오류") + "). Firebase 설정을 확인하고 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -3581,17 +3591,20 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
   async function handleCreate() {
     const clean = sanitizeCode(value);
     if (!clean || !founderPasswordNew.trim()) return;
+    // 새 코드는 비밀번호 6자 이상(조회 비밀번호는 비우거나 6자 이상)
+    if (founderPasswordNew.trim().length < 6) { setError("개설자 전용 비밀번호는 6자 이상으로 정해 주세요."); return; }
+    if (viewerPasswordNew.trim() && viewerPasswordNew.trim().length < 6) { setError("조회 비밀번호는 6자 이상으로 정하거나 비워 두세요."); return; }
     setBusy(true);
     setError("");
     try {
       const result = await onCreateCode(clean, viewerPasswordNew, founderPasswordNew);
       if (!result.ok) {
-        if (result.reason === "code-taken") setError("이미 사용 중인 코드예요. 개설자 전용 비밀번호가 다릅니다.");
-        else setError("코드를 만들지 못했습니다. 다시 시도해 주세요.");
+        if (result.reason === "code-taken") setError("이미 사용 중인 코드예요. 개설자 전용 비밀번호가 달라요.");
+        else setError("코드를 만들지 못했어요. 다시 시도해 주세요.");
       }
     } catch (e) {
       console.error("create code failed:", e);
-      setError("연결에 실패했습니다 (" + (e && e.code ? e.code : "알 수 없는 오류") + "). Firebase 설정을 확인하고 다시 시도해 주세요.");
+      setError("연결에 실패했어요 (" + (e && e.code ? e.code : "알 수 없는 오류") + "). Firebase 설정을 확인하고 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -3604,13 +3617,13 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
     try {
       const result = await onRequestAccess({ name, code: reqCode, password: reqPassword, wantsEdit });
       if (!result.ok) {
-        if (result.reason === "bad-code") setFormError("존재하지 않는 코드입니다.");
+        if (result.reason === "bad-code") setFormError("존재하지 않는 코드예요.");
         else if (result.reason === "bad-password") setFormError("조회 비밀번호가 올바르지 않거나, 개설자가 접근 신청을 꺼 두었어요. 연달아 시도했다면 5초 뒤에 다시 해 주세요.");
-        else setFormError("신청을 처리하지 못했습니다. 다시 시도해 주세요.");
+        else setFormError("신청을 처리하지 못했어요. 다시 시도해 주세요.");
       }
     } catch (e) {
       console.error("access request failed:", e);
-      setFormError("연결에 실패했습니다 (" + (e && e.code ? e.code : "알 수 없는 오류") + "). Firebase 설정을 확인하고 다시 시도해 주세요.");
+      setFormError("연결에 실패했어요 (" + (e && e.code ? e.code : "알 수 없는 오류") + "). Firebase 설정을 확인하고 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -3633,9 +3646,9 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             접근 신청 안내
           </h2>
           <ul className="text-sm mb-4 flex flex-col gap-2" style={{ color: "var(--ink)" }}>
-            <li>개설자에게 안내받은 <b>코드</b>와 <b>조회 비밀번호</b>를 정확히 입력해야 합니다.</li>
-            <li>기본으로 부여되는 권한은 <b>조회 전용</b>입니다. 명단·기록을 입력·수정하려면 아래에서 <b>수정 권한도 함께 신청</b>할 수 있고, 이 경우 개설자의 승인이 필요합니다.</li>
-            <li>신청 시 입력한 이름은 서버에 저장되어 개설자가 구성원을 파악하는 용도로 쓰여요. 실명 대신 <b>별명이나 역할</b>(예: 3반 기록원)로 적어 주세요. 개설자는 언제든 접근을 취소할 수 있습니다.</li>
+            <li>개설자에게 안내받은 <b>코드</b>와 <b>조회 비밀번호</b>를 정확히 입력해야 해요.</li>
+            <li>기본으로 부여되는 권한은 <b>조회 전용</b>이에요. 명단·기록을 입력·수정하려면 아래에서 <b>수정 권한도 함께 신청</b>할 수 있고, 이 경우 개설자의 승인이 필요해요.</li>
+            <li>신청 시 입력한 이름은 서버에 저장되어 개설자가 구성원을 파악하는 용도로 쓰여요. 실명 대신 <b>별명이나 역할</b>(예: 3반 기록원)로 적어 주세요. 개설자는 언제든 접근을 취소할 수 있어요.</li>
             <li>권한은 <b>이 기기(브라우저)</b>에 묶여 있어요. 다른 기기·브라우저에서 들어오거나 인터넷 기록을 지우면 다시 신청해야 해요.</li>
           </ul>
           <label className="flex items-start gap-2 text-sm mb-4" style={{ color: "var(--ink)" }}>
@@ -3698,7 +3711,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
           />
           <label className="flex items-start gap-2 text-sm mb-3" style={{ color: "var(--ink)" }}>
             <input type="checkbox" checked={wantsEdit} onChange={(e) => setWantsEdit(e.target.checked)} className="mt-0.5" />
-            명단·기록을 입력·수정할 권한도 필요합니다 (개설자 승인 필요)
+            명단·기록을 입력·수정할 권한도 필요해요 (개설자 승인 필요)
           </label>
           {formError && (
             <p className="text-xs mb-3" style={{ color: "var(--danger)" }}>
@@ -3958,8 +3971,8 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
           </div>
 
           <div className="mt-6 pt-4 text-xs flex flex-col gap-1.5" style={{ borderTop: "1px solid var(--line)", color: "var(--ink-2)" }}>
-            <p>동료 선생님과 함께 관리하려면, 코드와 조회 비밀번호를 안내해 "접근 신청"으로 들어오게 하세요. 명단·기록 수정까지 맡기려면 신청 시 "수정 권한도 필요합니다"에 체크하도록 안내하면, 개설자가 승인한 뒤 함께 입력할 수 있어요.</p>
-            <p>학생 이름은 서버가 아닌 각 기기에만 저장돼요. 여러 기기를 쓴다면 설정 탭의 "이름표 내보내기/가져오기"로 이름을 옮길 수 있습니다.</p>
+            <p>동료 선생님과 함께 관리하려면, 코드와 조회 비밀번호를 안내해 "접근 신청"으로 들어오게 하세요. 명단·기록 수정까지 맡기려면 신청 시 "수정 권한도 필요해요"에 체크하도록 안내하면, 개설자가 승인한 뒤 함께 입력할 수 있어요.</p>
+            <p>학생 이름은 서버가 아닌 각 기기에만 저장돼요. 여러 기기를 쓴다면 설정 탭의 "이름표 내보내기/가져오기"로 이름을 옮길 수 있어요.</p>
             <p>받는 정보·저장하는 곳·지우는 법은 <a href="https://yangssaem.vercel.app/privacy/#score" target="_blank" rel="noopener noreferrer" className="underline">개인정보 안내</a>에 정리돼 있어요.</p>
             <p>보안 방식이 바뀌어서 예전에 들어와 있던 동료 선생님은 한 번 더 접근 신청을 해 주세요. 개설자는 처음 로그인할 때 자동으로 옮겨져요.</p>
           </div>
