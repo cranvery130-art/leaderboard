@@ -36,6 +36,8 @@ import {
   requestAccess,
   verifyFounder,
   changePasswords,
+  issueRecoveryCode,
+  recoverFounder,
   watchMyMember,
   watchMembers,
   updateMember,
@@ -3227,6 +3229,19 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
   const [viewerOff, setViewerOff] = useState(false);
   const [showFounderPw, setShowFounderPw] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
+  const [issuedRecovery, setIssuedRecovery] = useState("");
+  const [issuing, setIssuing] = useState(false);
+
+  async function issueRecovery() {
+    setIssuing(true);
+    try {
+      setIssuedRecovery(await issueRecoveryCode(workspaceCode));
+    } catch (e) {
+      showToast("복구 코드를 만들지 못했어요. 다시 시도해 주세요.", "warn");
+    } finally {
+      setIssuing(false);
+    }
+  }
 
   useEffect(() => {
     setMembers(null);
@@ -3343,6 +3358,32 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
         {savingPw ? "저장 중..." : "비밀번호 바꾸기"}
       </button>
 
+      <div className="mb-4 pt-3" style={{ borderTop: "1px solid var(--line)" }}>
+        <p className="text-xs font-medium mb-1" style={{ color: "var(--ink)" }}>
+          복구 코드
+        </p>
+        <p className="text-xs mb-2" style={{ color: "var(--ink-2)" }}>
+          개설자 전용 비밀번호를 잊었을 때, 첫 화면 '개설자 전용 비밀번호를 잊었어요'에서 복구 코드를 넣으면 새 비밀번호를 정할 수 있어요. 예전에 만든 코드라 복구 코드를 받은 적이 없거나 잃어버렸다면 여기서 새로 만들어 두세요. 새로 만들면 예전 복구 코드는 못 써요.
+        </p>
+        <button
+          onClick={issueRecovery}
+          disabled={issuing}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium"
+          style={{ border: "1px solid var(--line)", color: "var(--ink)", opacity: issuing ? 0.6 : 1 }}
+        >
+          <KeyRound size={13} /> {issuing ? "만드는 중..." : "복구 코드 만들기"}
+        </button>
+      </div>
+      {issuedRecovery && (
+        <RecoveryCodeModal
+          title="새 복구 코드"
+          note="예전 복구 코드는 이제 못 써요. 개설자 전용 비밀번호를 잊었을 때 이 코드로 새 비밀번호를 정해요."
+          workspaceCode={workspaceCode}
+          recoveryCode={issuedRecovery}
+          onClose={() => setIssuedRecovery("")}
+        />
+      )}
+
       <div className="mb-4">
         <p className="text-xs font-medium mb-2" style={{ color: "var(--ink)" }}>
           승인 대기 ({pending.length}명)
@@ -3394,6 +3435,80 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// 복구 코드 메모 파일
+function downloadRecoveryMemo(workspaceCode, recoveryCode) {
+  const lines = [
+    "스코어 대시보드 복구 코드 메모",
+    "",
+    "코드: " + workspaceCode,
+    "복구 코드: " + recoveryCode,
+    "",
+    "개설자 전용 비밀번호를 잊었을 때 첫 화면 '개설자 전용 비밀번호를 잊었어요'에서 이 복구 코드를 넣으면 새 비밀번호를 정할 수 있어요.",
+    "한 번 쓰면 새 복구 코드로 바뀌어요. 동료 선생님께 알려 주지 마세요.",
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `score-${workspaceCode}-복구코드.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// 복구 코드를 한 번만 보여주는 칸(복사·메모 파일 받기)
+function RecoveryCodeBox({ workspaceCode, recoveryCode, note }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(recoveryCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      // 직접 적어 두면 돼요
+    }
+  }
+  return (
+    <div className="mb-4">
+      <p className="text-xs mb-2" style={{ color: "var(--ink-2)" }}>
+        {note} 이 창을 닫으면 다시 볼 수 없어요.
+      </p>
+      <div
+        className="lb-mono text-center text-xl font-bold py-3 px-2 rounded-lg mb-2 select-all"
+        style={{ letterSpacing: "0.1em", color: "#E2622B", backgroundColor: "var(--surface-2)", border: "1px dashed #E2622B", wordBreak: "break-all" }}
+        aria-label="복구 코드"
+      >
+        {recoveryCode}
+      </div>
+      <div className="flex gap-1.5 justify-center">
+        <button onClick={copy} className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium" style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>
+          <Copy size={13} /> {copied ? "복사했어요" : "복사"}
+        </button>
+        <button onClick={() => downloadRecoveryMemo(workspaceCode, recoveryCode)} className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium" style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>
+          <Download size={13} /> 메모 파일 받기
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RecoveryCodeModal({ title, note, workspaceCode, recoveryCode, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ ...YS_THEME, backgroundColor: "rgba(29,39,71,0.45)" }} onClick={onClose}>
+      <div className="w-full rounded-xl p-5 recovery-modal" style={{ maxWidth: 400, backgroundColor: "var(--surface)", border: "1px solid var(--line)", fontFamily: "'IBM Plex Sans KR', sans-serif" }} onClick={(e) => e.stopPropagation()}>
+        <h3 className="lb-title text-lg mb-2 flex items-center gap-1.5" style={{ color: "var(--ink)" }}>
+          <KeyRound size={18} style={{ color: "#E2622B" }} /> {title}
+        </h3>
+        <RecoveryCodeBox workspaceCode={workspaceCode} recoveryCode={recoveryCode} note={note} />
+        <button onClick={onClose} className="w-full px-4 py-2.5 rounded-md text-sm font-medium" style={{ backgroundColor: "var(--ink)", color: "var(--bg)" }}>
+          적어 뒀어요
+        </button>
       </div>
     </div>
   );
@@ -3549,8 +3664,14 @@ function IntroSplash({ onDone }) {
   );
 }
 
-function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess }) {
-  const [mode, setMode] = useState("code");
+function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess, onRecover, onEnterAfterRecover }) {
+  const [mode, setMode] = useState("code"); // 'code' | 'notice' | 'form' | 'recover'
+  const [recCode, setRecCode] = useState("");
+  const [recKey, setRecKey] = useState("");
+  const [recPw, setRecPw] = useState("");
+  const [recPw2, setRecPw2] = useState("");
+  const [recError, setRecError] = useState("");
+  const [recDone, setRecDone] = useState(null); // { code, recoveryCode }
   const [value, setValue] = useState(lastCode || "");
   const [founderPassword, setFounderPassword] = useState("");
   const [showFounderPassword, setShowFounderPassword] = useState(false);
@@ -3610,6 +3731,31 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
     }
   }
 
+  async function handleRecoverSubmit() {
+    const clean = sanitizeCode(recCode);
+    if (!clean || !recKey.trim() || !recPw.trim()) return;
+    if (recPw.trim().length < 6) { setRecError("새 개설자 전용 비밀번호는 6자 이상으로 정해 주세요."); return; }
+    if (recPw.trim() !== recPw2.trim()) { setRecError("새 비밀번호 두 칸이 서로 달라요."); return; }
+    setBusy(true);
+    setRecError("");
+    try {
+      const r = await onRecover(clean, recKey, recPw.trim());
+      if (r.ok) {
+        setRecDone({ code: clean, recoveryCode: r.recoveryCode });
+        setRecKey("");
+        setRecPw("");
+        setRecPw2("");
+      } else if (r.reason === "bad-code") setRecError("존재하지 않는 코드예요. 다시 확인해 주세요.");
+      else if (r.reason === "legacy") setRecError("아직 새 보안 방식으로 옮기지 않은 예전 코드라 복구 코드가 없어요.");
+      else setRecError("복구 코드가 맞지 않아요. 이 코드에 복구 코드를 만든 적이 없을 수도 있어요. 연달아 시도했다면 5초 뒤에 다시 해 주세요.");
+    } catch (e) {
+      console.error("recover failed:", e);
+      setRecError("처리하지 못했어요. 인터넷 연결을 확인하고 다시 해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleRequestSubmit() {
     if (!name.trim() || !reqCode.trim() || !reqPassword.trim()) return;
     setBusy(true);
@@ -3636,6 +3782,87 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
     minHeight: "100vh",
   };
   const inputStyle = { border: "1px solid var(--line)" };
+
+  if (mode === "recover") {
+    return (
+      <div style={shellStyle} className="w-full flex items-center justify-center px-4 py-8 md:py-16">
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Jua&display=swap'); .lb-title { font-family: 'Jua', 'IBM Plex Sans KR', sans-serif; font-weight: 400; letter-spacing: -0.01em; } .lb-mono { font-family: 'JetBrains Mono', monospace; } input:not([type=checkbox]):not([type=file]), select, textarea { background-color: var(--surface-2); color: var(--ink); border-color: var(--line); font-family: 'IBM Plex Sans KR', sans-serif; }`}</style>
+        <div className="w-full rounded-2xl p-6 md:p-8" style={{ maxWidth: 420, backgroundColor: "var(--surface)", border: "1px solid var(--line)", boxShadow: "0 22px 50px -22px rgba(29,39,71,0.35)" }}>
+          {recDone ? (
+            <>
+              <h2 className="lb-title text-xl mb-3 flex items-center gap-1.5" style={{ color: "var(--ink)" }}>
+                <Check size={20} style={{ color: "#E2622B" }} /> 새 비밀번호를 정했어요
+              </h2>
+              <RecoveryCodeBox
+                workspaceCode={recDone.code}
+                recoveryCode={recDone.recoveryCode}
+                note="쓴 복구 코드는 이제 못 써요. 아래 새 복구 코드를 적어 두세요."
+              />
+              <button
+                onClick={() => onEnterAfterRecover(recDone.code)}
+                className="w-full px-4 py-2.5 rounded-md text-sm font-medium"
+                style={{ backgroundColor: "var(--ink)", color: "var(--bg)" }}
+              >
+                개설자로 들어가기
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 className="lb-title text-xl mb-1 flex items-center gap-1.5" style={{ color: "var(--ink)" }}>
+                <KeyRound size={20} style={{ color: "#E2622B" }} /> 비밀번호 다시 정하기
+              </h2>
+              <p className="text-sm mb-4" style={{ color: "var(--ink-2)" }}>
+                지금 비밀번호는 아무도 볼 수 없어요. 코드를 만들 때 받은 <b>복구 코드</b>를 넣으면 새 개설자 전용 비밀번호를 정할 수 있어요.
+              </p>
+              <input value={recCode} onChange={(e) => setRecCode(e.target.value)} placeholder="코드" className="w-full px-3 py-2.5 rounded-md text-sm outline-none mb-2 lb-mono" style={inputStyle} />
+              <input
+                value={recKey}
+                onChange={(e) => setRecKey(e.target.value)}
+                placeholder="복구 코드 12자리 (예: K7QM-3XRA-9PTB)"
+                autoComplete="off"
+                spellCheck={false}
+                className="w-full px-3 py-2.5 rounded-md text-sm outline-none mb-2 lb-mono uppercase"
+                style={inputStyle}
+              />
+              <input type="password" value={recPw} onChange={(e) => setRecPw(e.target.value)} placeholder="새 개설자 전용 비밀번호 (6자 이상)" className="w-full px-3 py-2.5 rounded-md text-sm outline-none mb-2" style={inputStyle} />
+              <input
+                type="password"
+                value={recPw2}
+                onChange={(e) => setRecPw2(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleRecoverSubmit();
+                }}
+                placeholder="새 비밀번호 한 번 더"
+                className="w-full px-3 py-2.5 rounded-md text-sm outline-none mb-2"
+                style={inputStyle}
+              />
+              {recError && (
+                <p className="text-xs mb-2 recover-error" style={{ color: "var(--danger)" }}>
+                  {recError}
+                </p>
+              )}
+              <p className="text-xs mb-4" style={{ color: "var(--ink-2)" }}>
+                복구 코드도 잃어버렸다면 되찾을 수 없어요. 그때는 새 코드를 만들어 주세요.
+              </p>
+              <div className="flex justify-between">
+                <button onClick={() => setMode("code")} className="px-4 py-2 rounded-md text-sm font-medium" style={{ color: "var(--ink-2)" }}>
+                  돌아가기
+                </button>
+                <button
+                  onClick={handleRecoverSubmit}
+                  disabled={!recCode.trim() || !recKey.trim() || !recPw.trim() || !recPw2.trim() || busy}
+                  className="px-4 py-2 rounded-md text-sm font-medium"
+                  style={{ backgroundColor: "var(--ink)", color: "var(--bg)", opacity: busy || !recKey.trim() || !recPw.trim() ? 0.6 : 1 }}
+                >
+                  {busy ? "확인 중..." : "새 비밀번호 정하기"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (mode === "notice") {
     return (
@@ -3827,6 +4054,18 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             >
               {busy ? "확인 중..." : "개설자로 로그인"}
             </button>
+            <button
+              onClick={() => {
+                setRecCode(value);
+                setRecError("");
+                setRecDone(null);
+                setMode("recover");
+              }}
+              className="w-full text-xs mb-3 underline"
+              style={{ color: "var(--ink-2)", textUnderlineOffset: 3 }}
+            >
+              개설자 전용 비밀번호를 잊었어요
+            </button>
 
             <button onClick={() => setMode("notice")} className="w-full text-sm mb-3" style={{ color: "var(--accent)" }}>
               동료 선생님이신가요? 접근 신청 →
@@ -3881,7 +4120,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
               다른 기기에서 이 코드와 이 비밀번호를 입력하면 승인 절차 없이 바로 개설자로 들어올 수 있어요. 동료 교사에게는 알려주지 마세요.
             </p>
             <p className="text-xs font-medium mb-3" style={{ color: "var(--danger)" }}>
-              비밀번호는 나중에 화면에서 다시 볼 수 없어요. 꼭 따로 적어 두세요.
+              비밀번호는 나중에 화면에서 다시 볼 수 없어요. 꼭 따로 적어 두세요. 만들면 비밀번호를 잊었을 때 쓰는 복구 코드를 한 번 보여드려요.
             </p>
             {error && (
               <p className="text-xs mb-3" style={{ color: "var(--danger)" }}>
@@ -3945,7 +4184,7 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             </h3>
             <div className="flex flex-col gap-3">
               {[
-                { n: 1, title: "코드 만들기", desc: "원하는 코드(예: 3반체육왕2026)와 개설자 전용 비밀번호를 정해 새 코드를 만들어요. 동료와 함께 볼 거면 조회 비밀번호도 정해요(선택). 비밀번호는 되돌릴 수 없는 암호로만 저장돼서 잊으면 찾을 수 없으니 따로 적어 두세요. 이 코드로 어떤 기기에서든 같은 데이터를 이어서 관리해요." },
+                { n: 1, title: "코드 만들기", desc: "원하는 코드(예: 3반체육왕2026)와 개설자 전용 비밀번호를 정해 새 코드를 만들어요. 동료와 함께 볼 거면 조회 비밀번호도 정해요(선택). 비밀번호는 되돌릴 수 없는 암호로만 저장돼서 다시 볼 수 없으니 따로 적어 두세요. 만들 때 나오는 복구 코드도 꼭 적어 두면, 개설자 전용 비밀번호를 잊었을 때 첫 화면 '개설자 전용 비밀번호를 잊었어요'에서 새로 정할 수 있어요. 이 코드로 어떤 기기에서든 같은 데이터를 이어서 관리해요." },
                 { n: 2, title: "명단 등록", desc: "'명단 관리' 탭에서 학생을 엑셀로 한 번에 올리거나 직접 추가해요(엑셀을 다시 올려도 같은 학년·반·번호는 중복되지 않아요). 이름은 이 기기에만 저장되니, 다른 기기에서 열 땐 그 기기에서 한 번 더 등록하거나 '이름표 가져오기'로 옮겨오세요." },
                 { n: 3, title: "경기 기록", desc: "'경기 기록' 탭에서 날짜·종목을 고르고 참가자를 체크해 결과를 입력해요. '전체 승/무/패' 버튼으로 한 팀 전체를 한 번에 처리하거나, '직접 입력'으로 특정 학생에게만 점수를 따로 줄 수도 있어요." },
                 { n: 4, title: "리더보드 공유", desc: "'리더보드' 탭이 자동으로 순위를 계산해요. 화면 위 '빔프로젝터 고정' 버튼을 누르면 리더보드만 크게 보이고 다른 조작이 잠기는 화면으로 바뀌어, 빔프로젝터나 모바일로 안전하게 띄워 보여줄 수 있어요. 되돌아오려면 개설자 비밀번호가 필요해요." },
@@ -3987,6 +4226,7 @@ export default function App() {
   const [lastCode, setLastCode] = useState(null);
   const [deviceId, setDeviceId] = useState(null);
   const [gateLoading, setGateLoading] = useState(true);
+  const [recoveryNotice, setRecoveryNotice] = useState(null); // 새 코드를 만든 직후 복구 코드를 한 번 보여줘요
   const [showIntro, setShowIntro] = useState(() => {
     try {
       return !sessionStorage.getItem(INTRO_SESSION_KEY);
@@ -4028,7 +4268,9 @@ export default function App() {
   }
 
   async function handleCreateCode(code, viewerPassword, founderPassword) {
-    if (await createWorkspace(code, viewerPassword, founderPassword)) {
+    const created = await createWorkspace(code, viewerPassword, founderPassword);
+    if (created) {
+      setRecoveryNotice({ code, recoveryCode: created.recoveryCode });
       enterAs(code, "founder", "개설자");
       return { ok: true };
     }
@@ -4039,6 +4281,11 @@ export default function App() {
       return { ok: true };
     }
     return { ok: false, reason: "code-taken" };
+  }
+
+  // 개설자 전용 비밀번호를 잊었을 때: 복구 코드로 새 비밀번호를 정해요(성공하면 이 기기가 개설자예요).
+  async function handleRecover(code, recoveryCode, newPassword) {
+    return recoverFounder(code, recoveryCode, newPassword);
   }
 
   async function handleRequestAccess({ name, code, password, wantsEdit }) {
@@ -4083,6 +4330,8 @@ export default function App() {
           onFounderLogin={handleFounderLogin}
           onCreateCode={handleCreateCode}
           onRequestAccess={handleRequestAccess}
+          onRecover={handleRecover}
+          onEnterAfterRecover={(code) => enterAs(code, "founder", "개설자")}
         />
       ) : (
         <Dashboard
@@ -4092,6 +4341,15 @@ export default function App() {
           myName={session.myName}
           deviceId={deviceId}
           onRefreshRole={refreshRole}
+        />
+      )}
+      {session && recoveryNotice && recoveryNotice.code === session.workspaceCode && (
+        <RecoveryCodeModal
+          title="코드를 만들었어요"
+          note="개설자 전용 비밀번호를 잊었을 때 이 복구 코드로 새 비밀번호를 정해요. 동료 선생님께는 알려 주지 마세요."
+          workspaceCode={recoveryNotice.code}
+          recoveryCode={recoveryNotice.recoveryCode}
+          onClose={() => setRecoveryNotice(null)}
         />
       )}
       {showIntro && <IntroSplash onDone={dismissIntro} />}
