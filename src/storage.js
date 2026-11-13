@@ -217,7 +217,13 @@ export async function readWorkspaceData(code) {
   const snap = await getDoc(dataRef(code));
   return snap.exists() ? snap.data() : null;
 }
+// 명단·경기 기록 전체가 Firestore 문서 한 개(한도 약 1MB)에 들어가요. 80%를 넘으면 화면에 알리도록 신호를 보내요.
+const DATA_WARN_BYTES = 800000;
 export async function writeWorkspaceData(code, data) {
+  try {
+    const bytes = new TextEncoder().encode(JSON.stringify(data)).length;
+    if (bytes > DATA_WARN_BYTES) window.dispatchEvent(new CustomEvent("lb-data-near-limit", { detail: { bytes } }));
+  } catch (e) { /* 알림만 못 띄움 */ }
   await setDoc(dataRef(code), data);
 }
 // callback(data | null). Returns an unsubscribe function.
