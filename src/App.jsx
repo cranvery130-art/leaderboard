@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from "react";
 import * as XLSX from "xlsx";
+import { useBackLayer, useTabBack, startBackGuard } from "./backGuard.js";
 import {
   Trophy,
   Users,
@@ -599,6 +600,12 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
   const [unlockBusy, setUnlockBusy] = useState(false);
   const skipFirstSave = useRef(true);
   const isDesktop = useIsDesktop();
+  // 휴대폰 뒤로가기: 열린 창 닫기 → 바로 전 탭 (backGuard.js)
+  useTabBack(tab, setTab);
+  useBackLayer(projectorLocked, () => true); // 프로젝터 잠금 중에는 뒤로가기로 나가지 않아요(풀기는 잠금 해제로만)
+  useBackLayer(showFeatureGuide, () => { setShowFeatureGuide(false); return true; });
+  useBackLayer(!!confirmModal, () => { setConfirmModal(null); return true; });
+  useBackLayer(showUnlockModal, () => { setShowUnlockModal(false); return true; });
 
   function enterProjectorMode() {
     setProjectorLocked(true);
@@ -2798,6 +2805,8 @@ function SettingsTab({
   const [backedUp, setBackedUp] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const importInputRef = useRef(null);
+  useBackLayer(!!pendingImport, () => { setPendingImport(null); return true; });
+  useBackLayer(leaveModalOpen, () => { setLeaveModalOpen(false); return true; });
 
   const studentCount = students.length;
   const matchCount = matches.length;
@@ -3689,6 +3698,9 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
   const [reqPassword, setReqPassword] = useState("");
   const [wantsEdit, setWantsEdit] = useState(false);
   const [formError, setFormError] = useState("");
+  // 휴대폰 뒤로가기: 안내 닫기 → 신청·복구 화면에서 코드 입력으로
+  useBackLayer(mode !== "code", () => { setMode(mode === "form" ? "notice" : "code"); return true; });
+  useBackLayer(showGuide, () => { setShowGuide(false); return true; });
 
   async function handleLogin() {
     const clean = sanitizeCode(value);
@@ -4234,6 +4246,10 @@ export default function App() {
       return true;
     }
   });
+
+  useEffect(() => { startBackGuard(); }, []);
+  useBackLayer(showIntro, () => { dismissIntro(); return true; });
+  useBackLayer(!!recoveryNotice, () => true); // 복구 코드는 적어 두고 확인을 눌러야 닫혀요
 
   function dismissIntro() {
     setShowIntro(false);
