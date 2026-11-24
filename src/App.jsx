@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from "react";
 import * as XLSX from "xlsx";
 import { useBackLayer, useTabBack, startBackGuard } from "./backGuard.js";
+import CeremonyHero from "./Ceremony.jsx";
 import {
   Trophy,
   Users,
@@ -13,7 +14,6 @@ import {
   RotateCcw,
   AlertTriangle,
   X,
-  Crown,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -795,10 +795,24 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
   const readOnly = role === "viewer" || role === "pending";
   const canManageAccess = role === "founder";
   const podiumGroups = groups.slice(0, 3);
-  const podiumOrder = [];
-  if (podiumGroups[1]) podiumOrder.push({ ...podiumGroups[1], slot: "left" });
-  if (podiumGroups[0]) podiumOrder.push({ ...podiumGroups[0], slot: "center" });
-  if (podiumGroups[2]) podiumOrder.push({ ...podiumGroups[2], slot: "right" });
+  const ceremonyPodium = podiumGroups.map((g, i) => ({
+    rank: g.rank,
+    total: g.total,
+    place: i + 1,
+    rows: g.rows.map((r) => ({ id: r.student.id, label: displayName(r.student) })),
+  }));
+  const hasResults = students.length > 0 && sorted.some((r) => r.played > 0);
+  // 머리 부분은 시상식 장면과 이어지는 남색이에요. 글자색 변수만 밝게 바꿔요.
+  const headerVars = {
+        "--ink": "#F4F5F7",
+        "--ink-2": "rgba(244,245,247,0.72)",
+        "--line": "rgba(255,255,255,0.14)",
+        "--line-2": "rgba(255,255,255,0.24)",
+        "--surface": "rgba(255,255,255,0.06)",
+        "--surface-2": "rgba(255,255,255,0.1)",
+        "--accent": "#F2C46B",
+        "--accent-2": "rgba(244,245,247,0.7)",
+  };
 
   function removeStudentFromMatches(id) {
     setMatches((prev) => prev.map((m) => ({ ...m, participants: m.participants.filter((p) => p.studentId !== id) })));
@@ -837,27 +851,14 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
         .lb-title { font-family: 'Jua', 'IBM Plex Sans KR', sans-serif; font-weight: 400; letter-spacing: -0.01em; }
         .lb-proj .lb-title { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 900; letter-spacing: -0.03em; }
         .lb-mono { font-family: 'JetBrains Mono', monospace; }
+        .lb-rank-num { font-family: 'Archivo', 'IBM Plex Sans KR', sans-serif; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+        .lb-stage-title { font-family: 'IBM Plex Sans KR', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
         .lb-tab-btn { transition: color 0.15s ease, border-color 0.15s ease; }
         select, textarea, input:not([type=checkbox]):not([type=file]) { font-family: 'IBM Plex Sans KR', sans-serif; background-color: var(--surface-2); color: var(--ink); border-color: var(--line); }
-        .podium-pop { animation: podiumPop 0.6s cubic-bezier(0.22,1,0.36,1) both; }
-        @keyframes podiumPop { from { opacity: 0; transform: translateY(18px) scale(0.94); } to { opacity: 1; transform: none; } }
-        .platform-shine { position: relative; overflow: hidden; }
-        .platform-shine::after { content: ''; position: absolute; top: 0; bottom: 0; width: 35%; left: -50%; background: linear-gradient(120deg, transparent, rgba(255,255,255,0.55), transparent); animation: shineSweep 3.2s ease-in-out infinite; }
-        @keyframes shineSweep { 0% { left: -50%; } 55% { left: 120%; } 100% { left: 120%; } }
-        .twinkle { animation: twinkle 2.6s ease-in-out infinite; }
-        @keyframes twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.8); } 50% { opacity: 0.95; transform: scale(1.2); } }
-        .ray-spin { animation: raySpin 60s linear infinite; }
-        @keyframes raySpin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
         .live-pulse { display: inline-block; animation: livePulse 1.7s ease-in-out infinite; }
         @keyframes livePulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(225,75,90,0.55); } 50% { opacity: 0.55; box-shadow: 0 0 0 7px rgba(225,75,90,0); } }
-        .crown-glow { filter: drop-shadow(0 0 16px rgba(243,218,142,0.8)); }
-        .medal-ring { position: absolute; inset: -16px; border-radius: 9999px; border: 2px solid rgba(243,218,142,0.5); animation: ringPulse 2.4s ease-in-out infinite; }
-        @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.65; } 50% { transform: scale(1.14); opacity: 0.1; } }
-        .score-glow-1 { text-shadow: 0 0 26px rgba(243,218,142,0.85); }
-        .score-glow-2, .score-glow-3 { text-shadow: 0 0 12px rgba(243,218,142,0.35); }
-        .scoreboard-scan { background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 3px); }
         @media (prefers-reduced-motion: reduce) {
-          .ray-spin, .live-pulse, .medal-ring, .twinkle, .platform-shine::after { animation: none !important; }
+          .live-pulse { animation: none !important; }
         }
   `;
 
@@ -866,33 +867,24 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
       <div style={{ ...stageStyle, ...PROJECTOR_THEME }} className="w-full lb-proj">
         <style>{stageFonts}</style>
         <header
-          className="relative overflow-hidden px-4 pt-6 pb-5 md:px-6 md:pt-11 md:pb-9"
-          style={{
-            background: "linear-gradient(135deg, #050B18, #14294D 60%, #0B1B33)",
-            borderBottom: "1px solid rgba(228,199,101,0.25)",
-          }}
+          className="px-4 pt-5 pb-4 md:px-6 md:pt-9 md:pb-6"
+          style={{ background: "#0B1430", paddingTop: "max(20px, env(safe-area-inset-top))" }}
         >
-          <div className="scoreboard-scan pointer-events-none absolute inset-0" />
-          <div className="relative max-w-5xl mx-auto flex items-center justify-center gap-2 mb-3 md:mb-4">
-            <span className="live-pulse" style={{ width: 9, height: 9, borderRadius: "50%", backgroundColor: "#E14B5A" }} />
-            <span className="lb-mono text-xs" style={{ color: "var(--accent-2)", letterSpacing: "0.35em" }}>
-              LIVE SCOREBOARD
+          <div className="max-w-5xl mx-auto flex items-center justify-center gap-2 mb-2 md:mb-3">
+            <span className="live-pulse" style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#E14B5A" }} />
+            <span className="lb-mono text-xs" style={{ color: "rgba(244,245,247,0.7)", letterSpacing: "0.3em" }}>
+              LIVE
             </span>
           </div>
-          <div className="relative max-w-5xl mx-auto flex items-center justify-center gap-3 md:gap-5">
-            <div className="crown-glow flex-shrink-0">
-              <TrophyEmblem size={isDesktop ? 72 : 48} />
-            </div>
-            <h1
-              className="lb-title text-center min-w-0"
-              style={{ color: "var(--ink)", fontSize: "clamp(1.4rem, 4vw, 3rem)", lineHeight: 1.15, textShadow: "0 0 30px rgba(228,199,101,0.35)" }}
-            >
-              {title}
-            </h1>
-          </div>
+          <h1
+            className="lb-stage-title text-center max-w-5xl mx-auto"
+            style={{ color: "var(--ink)", fontSize: "clamp(1.4rem, 4vw, 3rem)", lineHeight: 1.15 }}
+          >
+            {title}
+          </h1>
         </header>
         <main>
-          <ProjectorLeaderboard sorted={sorted} groups={groups} podiumOrder={podiumOrder} students={students} />
+          <ProjectorLeaderboard sorted={sorted} groups={groups} students={students} ceremony={ceremonyPodium} />
         </main>
         <button
           onClick={openUnlockModal}
@@ -962,8 +954,8 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
       <style>{stageFonts}</style>
 
       <header
-        className="px-4 pt-4 pb-3 md:px-6 md:pt-8 md:pb-7"
-        style={{ background: "var(--bg)", borderBottom: "3px solid transparent", borderImage: "var(--grad) 1" }}
+        className="px-4 pt-4 pb-0 md:px-6 md:pt-7"
+        style={{ ...headerVars, background: "#0B1430", color: "var(--ink)", paddingTop: "max(16px, env(safe-area-inset-top))" }}
       >
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 mb-3 md:mb-1">
           <span
@@ -984,14 +976,13 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
             <button
               onClick={() => setShowFeatureGuide(true)}
               className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap"
-              style={{ backgroundColor: "rgba(226,98,43,0.1)", color: "var(--accent)", border: "1px solid rgba(226,98,43,0.35)" }}
+              style={{ backgroundColor: "var(--surface)", color: "var(--accent)", border: "1px solid var(--line-2)" }}
             >
               <HelpCircle size={13} /> 기능 설명
             </button>
           </div>
         </div>
         <div className="max-w-4xl mx-auto flex items-start md:items-center gap-3 md:gap-4">
-          <TrophyEmblem size={isDesktop ? 56 : 44} />
           <div className="flex-1 min-w-0">
             {editingTitle ? (
               <div className="flex items-center gap-2">
@@ -1028,19 +1019,16 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                 }}
                 className="flex items-center gap-2 group text-left max-w-full"
               >
-                <h1 className="lb-title text-xl md:text-3xl leading-tight" style={{ color: "var(--ink)" }}>
+                <h1 className="lb-stage-title text-xl md:text-3xl leading-tight" style={{ color: "var(--ink)" }}>
                   {title}
                 </h1>
                 <Pencil size={15} style={{ color: "var(--accent)" }} className="opacity-60 group-hover:opacity-100 flex-shrink-0" />
               </button>
             )}
-            <p className="text-xs md:text-sm mt-1.5 max-w-lg" style={{ color: "var(--accent-2)", lineHeight: 1.6 }}>
-              개인전과 팀전 점수를 모바일로 빠르게 기록하고, 전광판처럼 큰 화면에 띄워 실시간 순위를 보여주는 프로그램이에요.
-            </p>
           </div>
         </div>
 
-        <nav className="max-w-4xl mx-auto grid grid-cols-4 md:flex md:gap-6 mt-4 md:mt-6 border-b" style={{ borderColor: "var(--line)" }}>
+        <nav className="max-w-4xl mx-auto grid grid-cols-4 md:flex md:gap-6 mt-4 md:mt-6" style={{ borderColor: "var(--line)" }}>
           {[
             { id: "leaderboard", label: "리더보드", icon: Trophy },
             { id: "roster", label: "명단 관리", icon: Users },
@@ -1053,7 +1041,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
               className="lb-tab-btn flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 pb-2.5 md:pb-3 text-xs md:text-sm font-medium whitespace-nowrap"
               style={{
                 color: tab === id ? "var(--ink)" : "var(--ink-2)",
-                borderBottom: "2px solid transparent", borderImage: tab === id ? "var(--grad) 1" : "none",
+                borderBottom: `2px solid ${tab === id ? "#D4AF37" : "transparent"}`,
               }}
             >
               <Icon size={16} />
@@ -1064,6 +1052,8 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
       </header>
 
       <Toast toast={toast} />
+
+      {tab === "leaderboard" && hasResults && <CeremonyHero podium={ceremonyPodium} variant="stage" />}
 
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-8">
         {role !== "founder" && (
@@ -1076,7 +1066,9 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
             {role === "pending" && " (수정 권한 승인 대기 중이에요. 승인 전까지는 조회만 가능해요.)"}
           </div>
         )}
-        {tab === "leaderboard" && <LeaderboardTab sorted={sorted} groups={groups} podiumOrder={podiumOrder} students={students} />}
+        {tab === "leaderboard" && (
+          <LeaderboardTab sorted={sorted} groups={groups} students={students} />
+        )}
         {tab === "roster" && (
           <RosterManager
             students={students}
@@ -1186,7 +1178,9 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                 title: "리더보드",
                 points: [
                   "학생별 누적 승점을 자동으로 계산해 순위대로 보여줘요. 동점자는 공동 순위로 처리돼요.",
-                  "상위 3명은 시상대로, 이름 옆 점들은 경기별 결과(승/무/패/부정행위)를 색으로 나타내요.",
+                  "맨 위에는 시상식 장면이 나와요. 경기장 천장에서 3위·2위·1위 순서로 태극기가 내려와 걸리고, 그 아래에 순위·이름·승점이 나타나요. 1·2·3위가 바뀌면 장면이 처음부터 다시 나와요(공동 순위면 이름이 함께 보여요).",
+                  "아래 전체 순위표에서 이름 옆 작은 칸들은 경기별 결과(승/무/패/부정행위)를 색으로 나타내요.",
+                  "휴대폰·컴퓨터에서 '움직임 줄이기'를 켜 두면 움직임 없이 마지막 장면만 보여요.",
                   "이 탭만 화면에 띄우면 그대로 빔프로젝터·전광판으로 쓸 수 있어요.",
                 ],
               },
@@ -1229,8 +1223,8 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                 icon: Projector,
                 title: "빔프로젝터 고정",
                 points: [
-                  "평소 화면은 밝은 종이색이고, '빔프로젝터 고정'을 누르면 어두운 전광판으로 바뀌어요.",
-                  "화면 위쪽 '빔프로젝터 고정' 버튼을 누르면 월드컵·올림픽 전광판 같은 화려한 연출(금빛 조명, 반짝이는 배경, 빛나는 시상대)로 리더보드가 크게 펼쳐져요. 발표·시상식처럼 빔프로젝터나 전광판으로 띄워두기 좋아요.",
+                  "'빔프로젝터 고정'을 누르면 탭과 버튼이 사라지고 리더보드만 어두운 전광판 화면으로 크게 보여요.",
+                  "리더보드 탭과 같은 시상식 장면(천장에 걸리는 1·2·3위 태극기)이 큰 화면에 맞게 더 크게 나와요. 발표·시상식 때 빔프로젝터나 전광판으로 띄워 두기 좋아요.",
                   "고정 모드에서는 탭 이동이나 편집 버튼이 모두 사라져서, 학생들이 화면 근처에 있어도 실수로 다른 화면을 누르거나 내용을 바꿀 걱정이 없어요.",
                   "오른쪽 아래 '고정 해제' 버튼을 누르고 개설자 전용 비밀번호를 입력해야만 원래 화면으로 돌아갈 수 있어요.",
                 ],
@@ -1277,8 +1271,9 @@ function EmptyState({ icon: Icon, title, body }) {
   );
 }
 
-function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
-  const isDesktop = useIsDesktop();
+const RANK_TONE = { 1: "#A8841A", 2: "#7D8793", 3: "#9A5B26" };
+
+function LeaderboardTab({ sorted, groups, students }) {
   if (students.length === 0) {
     return <EmptyState icon={Users} title="명단부터 등록해 주세요" body="리더보드는 등록된 학생과 경기 기록을 바탕으로 계산돼요." />;
   }
@@ -1288,105 +1283,13 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
     );
   }
 
-  const heights = { center: "h-32 md:h-48", left: "h-20 md:h-32", right: "h-16 md:h-28" };
-  const stars = [
-    { x: "8%", y: "20%", size: 4, delay: "0s" },
-    { x: "18%", y: "58%", size: 3, delay: "0.6s" },
-    { x: "88%", y: "18%", size: 3, delay: "1.1s" },
-    { x: "80%", y: "62%", size: 4, delay: "0.3s" },
-    { x: "50%", y: "10%", size: 3, delay: "1.5s" },
-    { x: "30%", y: "80%", size: 3, delay: "0.9s" },
-    { x: "70%", y: "85%", size: 3, delay: "1.8s" },
-  ];
-
   return (
     <div>
-      <div
-        className="relative overflow-hidden rounded-2xl mb-6 md:mb-10 px-3 md:px-4 pt-7 md:pt-10 pb-0"
-        style={{ background: "linear-gradient(160deg, var(--surface), var(--bg) 70%)" }}
-      >
-        <svg
-          viewBox="0 0 200 200"
-          className="absolute pointer-events-none"
-          style={{ top: "18%", left: "50%", width: 460, height: 460, transform: "translate(-50%,-50%)" }}
-        >
-          {Array.from({ length: 16 }).map((_, i) => (
-            <rect key={i} x="98.5" y="0" width="3" height="100" fill="#E4C765" opacity="0.1" transform={`rotate(${i * 22.5} 100 100)`} />
-          ))}
-        </svg>
-        {stars.map((s, i) => (
-          <span
-            key={i}
-            className="twinkle"
-            style={{
-              position: "absolute",
-              left: s.x,
-              top: s.y,
-              width: s.size,
-              height: s.size,
-              borderRadius: "50%",
-              backgroundColor: "#F3DA8E",
-              animationDelay: s.delay,
-            }}
-          />
-        ))}
-
-        <div className="relative flex items-end justify-center gap-2 md:gap-6">
-          {podiumOrder.map((g, idx) => (
-            <div
-              key={g.slot}
-              className="podium-pop flex flex-col items-center min-w-0"
-              style={{ flex: "1 1 0", maxWidth: 140, animationDelay: `${idx * 0.12}s` }}
-            >
-              {g.rank === 1 && (
-                <Crown size={isDesktop ? 26 : 22} style={{ color: "var(--gold-300)", marginBottom: -4 }} fill="var(--gold-300)" />
-              )}
-              <MedalIcon tier={g.rank} size={g.rank === 1 ? (isDesktop ? 50 : 40) : isDesktop ? 40 : 32} ribbon />
-              <div className="mt-2 md:mt-3 text-center px-1 w-full">
-                {g.rows.map((r) => (
-                  <div
-                    key={r.student.id}
-                    className={g.rank === 1 ? "font-semibold text-sm md:text-base leading-snug truncate" : "font-medium text-xs md:text-sm leading-snug truncate"}
-                    style={{ color: "var(--ink)" }}
-                  >
-                    {displayName(r.student)}
-                  </div>
-                ))}
-              </div>
-              <div
-                className={`lb-mono font-bold mt-1 ${g.rank === 1 ? "text-xl md:text-2xl" : "text-base md:text-lg"}`}
-                style={{
-                  color: "var(--gold-300)",
-                  textShadow: g.rank === 1 ? "0 0 18px rgba(228,199,101,0.7)" : "none",
-                }}
-              >
-                {g.total}
-                <span className="text-xs font-normal" style={{ color: "rgba(251,248,240,0.65)" }}>
-                  점
-                </span>
-              </div>
-              <div
-                className={`${heights[g.slot]} platform-shine w-full mt-2 md:mt-3 rounded-t-lg flex items-start justify-center pt-2`}
-                style={{
-                  background:
-                    g.rank === 1
-                      ? "linear-gradient(180deg, var(--gold-300), var(--gold-500) 60%, #8A6A14)"
-                      : g.rank === 2
-                      ? "linear-gradient(180deg, #E7EBEE, #A9B1BC 60%, #6E7680)"
-                      : "linear-gradient(180deg, #D9AE81, #A2662F 60%, #6B4118)",
-                  boxShadow: g.rank === 1 ? "0 8px 24px rgba(201,162,39,0.45)" : "0 6px 16px rgba(11,27,51,0.25)",
-                }}
-              >
-                <span className="lb-mono text-white font-bold opacity-95" style={{ fontSize: g.rank === 1 ? (isDesktop ? 28 : 22) : isDesktop ? 22 : 18 }}>
-                  {g.rank}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="flex items-baseline justify-between mb-2 px-1">
+        <h2 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>전체 순위</h2>
+        <span className="text-xs" style={{ color: "var(--muted)" }}>{sorted.length}명 · 승점 높은 순</span>
       </div>
-
-      <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--line)" }}>
+      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--line)", backgroundColor: "var(--surface)" }}>
         <div
           className="rank-grid grid text-xs font-medium px-3 md:px-4 py-2"
           style={{ backgroundColor: "var(--surface-2)", color: "var(--ink-2)" }}
@@ -1396,40 +1299,31 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
           <span className="text-right">경기수</span>
           <span className="text-right">승점</span>
         </div>
-        {groups.flatMap((g) =>
+        {groups.flatMap((g, gi) =>
           g.rows.map((row) => {
-            const accent = g.rank === 1 ? "var(--gold-500)" : g.rank === 2 ? "#9AA5B1" : g.rank === 3 ? "#A2662F" : "transparent";
+            const place = gi + 1;
+            const tone = place <= 3 ? RANK_TONE[place] : "var(--ink-2)";
             return (
               <div
                 key={row.student.id}
-                className="rank-grid grid items-center px-3 md:px-4 py-2.5 text-sm"
-                style={{
-                  borderTop: "1px solid var(--line)",
-                  borderLeft: `3px solid ${accent}`,
-                  backgroundColor: g.rank <= 3 ? "var(--bg)" : "transparent",
-                }}
+                className="rank-grid grid items-center px-3 md:px-4 py-3 text-sm"
+                style={{ borderTop: "1px solid var(--line)" }}
               >
-                <span className="flex items-center">
-                  {g.rank <= 3 ? (
-                    <MedalIcon tier={g.rank} size={22} />
-                  ) : (
-                    <span className="lb-mono text-sm" style={{ color: "var(--ink-2)" }}>
-                      {g.rank}
-                    </span>
-                  )}
+                <span className="lb-rank-num" style={{ color: tone, fontSize: place <= 3 ? 20 : 15 }}>
+                  {g.rank}
                 </span>
                 <span className="flex flex-col min-w-0">
-                  <span className="font-medium truncate">{displayName(row.student)}</span>
+                  <span className="font-semibold truncate">{displayName(row.student)}</span>
                   <span className="text-xs" style={{ color: "var(--ink-2)" }}>
                     {row.student.grade}학년 {row.student.classNum}반 {row.student.number}번
                   </span>
                   {row.history.length > 0 && (
-                    <span className="flex flex-wrap gap-1 mt-1">
+                    <span className="flex flex-wrap gap-1 mt-1.5" aria-label="최근 경기 결과">
                       {row.history.map((h, i) => (
                         <span
                           key={i}
                           title={`${h.date} ${h.event} · ${RESULT_LABELS_WITH_CUSTOM[h.result]}`}
-                          style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: RESULT_DOT_COLOR[h.result] }}
+                          style={{ width: 6, height: 6, borderRadius: 2, backgroundColor: RESULT_DOT_COLOR[h.result] }}
                         />
                       ))}
                     </span>
@@ -1438,7 +1332,7 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
                 <span className="text-right text-xs md:text-sm" style={{ color: "var(--ink-2)" }}>
                   {row.played}경기
                 </span>
-                <span className="lb-mono text-right font-semibold" style={{ color: "var(--ink)" }}>
+                <span className="lb-mono text-right font-semibold" style={{ color: "var(--ink)", fontSize: place <= 3 ? 17 : 14 }}>
                   {row.total}
                 </span>
               </div>
@@ -1450,7 +1344,7 @@ function LeaderboardTab({ sorted, groups, podiumOrder, students }) {
   );
 }
 
-function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
+function ProjectorLeaderboard({ sorted, groups, students, ceremony }) {
   const isDesktop = useIsDesktop();
   if (students.length === 0) {
     return <EmptyState icon={Users} title="명단부터 등록해 주세요" body="리더보드는 등록된 학생과 경기 기록을 바탕으로 계산돼요." />;
@@ -1459,95 +1353,10 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
     return <EmptyState icon={CalendarDays} title="아직 등록된 경기 결과가 없어요" body="경기 기록 탭에서 첫 경기를 등록하면 순위가 나타나요." />;
   }
 
-  const heights = { center: "h-36 md:h-72", left: "h-24 md:h-52", right: "h-20 md:h-44" };
-  const rays = Array.from({ length: 24 });
-  const sparks = [
-    { x: "6%", y: "15%", size: 3, delay: "0s" },
-    { x: "92%", y: "22%", size: 4, delay: "0.4s" },
-    { x: "14%", y: "70%", size: 3, delay: "1.1s" },
-    { x: "85%", y: "68%", size: 3, delay: "0.8s" },
-    { x: "50%", y: "8%", size: 4, delay: "1.6s" },
-    { x: "30%", y: "88%", size: 3, delay: "0.3s" },
-    { x: "70%", y: "90%", size: 3, delay: "2.1s" },
-    { x: "40%", y: "35%", size: 2, delay: "1.4s" },
-    { x: "60%", y: "40%", size: 2, delay: "0.6s" },
-  ];
-
   return (
-    <div className="relative overflow-hidden" style={{ background: "radial-gradient(ellipse at 50% -10%, #1B3562 0%, #0B1B33 45%, #050B18 100%)", minHeight: "60vh" }}>
-      <div className="scoreboard-scan pointer-events-none absolute inset-0" />
-      <svg
-        viewBox="0 0 200 200"
-        className="ray-spin pointer-events-none absolute"
-        style={{ top: "8%", left: "50%", width: 900, height: 900, transform: "translate(-50%,-50%)", opacity: 0.12 }}
-      >
-        {rays.map((_, i) => (
-          <rect key={i} x="99" y="0" width="2" height="100" fill="#F3DA8E" transform={`rotate(${i * (360 / rays.length)} 100 100)`} />
-        ))}
-      </svg>
-      {sparks.map((s, i) => (
-        <span
-          key={i}
-          className="twinkle pointer-events-none absolute"
-          style={{ left: s.x, top: s.y, width: s.size, height: s.size, borderRadius: "50%", backgroundColor: "#F3DA8E", animationDelay: s.delay }}
-        />
-      ))}
-
-      <div className="relative max-w-6xl mx-auto px-3 pt-8 pb-20 md:px-6 md:pt-12 md:pb-16">
-        <div className="relative flex items-end justify-center gap-2 md:gap-14 mb-8 md:mb-16">
-          {podiumOrder.map((g, idx) => (
-            <div
-              key={g.slot}
-              className="podium-pop flex flex-col items-center min-w-0"
-              style={{ flex: g.slot === "center" ? "1.2 1 0" : "1 1 0", maxWidth: g.slot === "center" ? 220 : 170, animationDelay: `${idx * 0.15}s` }}
-            >
-              {g.rank === 1 && (
-                <div className="crown-glow mb-1">
-                  <Crown size={isDesktop ? 40 : 26} style={{ color: "#F3DA8E" }} fill="#F3DA8E" />
-                </div>
-              )}
-              <div className="relative">
-                {g.rank === 1 && <div className="medal-ring" />}
-                <MedalIcon tier={g.rank} size={g.rank === 1 ? (isDesktop ? 84 : 50) : isDesktop ? 60 : 38} ribbon />
-              </div>
-              <div className="mt-3 md:mt-4 text-center px-1 w-full">
-                {g.rows.map((r) => (
-                  <div
-                    key={r.student.id}
-                    className={g.rank === 1 ? "font-bold leading-snug truncate" : "font-semibold leading-snug truncate"}
-                    style={{ color: "var(--ink)", fontSize: g.rank === 1 ? (isDesktop ? 26 : 17) : isDesktop ? 19 : 14 }}
-                  >
-                    {displayName(r.student)}
-                  </div>
-                ))}
-              </div>
-              <div
-                className={`lb-mono font-bold mt-2 score-glow-${g.rank}`}
-                style={{ color: "#F3DA8E", fontSize: g.rank === 1 ? (isDesktop ? 44 : 30) : isDesktop ? 30 : 22 }}
-              >
-                {g.total}
-                <span style={{ fontSize: g.rank === 1 ? (isDesktop ? 16 : 13) : 12, fontWeight: 500, color: "rgba(251,248,240,0.6)" }}> 점</span>
-              </div>
-              <div
-                className={`${heights[g.slot]} platform-shine w-full mt-3 md:mt-4 rounded-t-xl flex items-start justify-center pt-2 md:pt-4 relative`}
-                style={{
-                  background:
-                    g.rank === 1
-                      ? "linear-gradient(180deg, #F3DA8E, #C9A227 55%, #7A5C10)"
-                      : g.rank === 2
-                      ? "linear-gradient(180deg, #EDEFF2, #AEB6C0 55%, #626A74)"
-                      : "linear-gradient(180deg, #E0B487, #A2662F 55%, #5E3A16)",
-                  boxShadow: g.rank === 1 ? "0 0 60px rgba(243,218,142,0.5), 0 10px 30px rgba(0,0,0,0.4)" : "0 10px 24px rgba(0,0,0,0.35)",
-                }}
-              >
-                <span className="lb-mono text-white font-bold" style={{ fontSize: g.rank === 1 ? (isDesktop ? 46 : 30) : isDesktop ? 34 : 22, textShadow: "0 2px 6px rgba(0,0,0,0.35)" }}>
-                  {g.rank}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
+    <div style={{ background: "#07102A", minHeight: "60vh" }}>
+      <CeremonyHero podium={ceremony} variant="projector" />
+      <div className="relative max-w-6xl mx-auto px-3 pt-6 pb-20 md:px-6 md:pt-10 md:pb-16">
         <div
           className="rounded-2xl overflow-hidden"
           style={{ border: "1px solid rgba(228,199,101,0.25)", backgroundColor: "rgba(5,11,24,0.55)" }}
@@ -1561,27 +1370,18 @@ function ProjectorLeaderboard({ sorted, groups, podiumOrder, students }) {
             <span className="text-right">경기수</span>
             <span className="text-right">승점</span>
           </div>
-          {groups.flatMap((g) =>
+          {groups.flatMap((g, gi) =>
             g.rows.map((row) => {
-              const accent = g.rank === 1 ? "#E4C765" : g.rank === 2 ? "#AEB6C0" : g.rank === 3 ? "#C98A4B" : "transparent";
+              const place = gi + 1;
+              const tone = place === 1 ? "#F3DA8E" : place === 2 ? "#D5DCE3" : place === 3 ? "#E0A86E" : "rgba(251,248,240,0.55)";
               return (
                 <div
                   key={row.student.id}
                   className="stage-rank-grid grid items-center px-3 md:px-6 py-3 md:py-3.5"
-                  style={{
-                    borderTop: "1px solid rgba(228,199,101,0.12)",
-                    borderLeft: `4px solid ${accent}`,
-                    backgroundColor: g.rank <= 3 ? "rgba(228,199,101,0.06)" : "transparent",
-                  }}
+                  style={{ borderTop: "1px solid rgba(228,199,101,0.12)" }}
                 >
-                  <span className="flex items-center">
-                    {g.rank <= 3 ? (
-                      <MedalIcon tier={g.rank} size={isDesktop ? 30 : 24} />
-                    ) : (
-                      <span className="lb-mono font-bold" style={{ color: "rgba(251,248,240,0.55)", fontSize: isDesktop ? 20 : 16 }}>
-                        {g.rank}
-                      </span>
-                    )}
+                  <span className="lb-rank-num" style={{ color: tone, fontSize: place <= 3 ? (isDesktop ? 28 : 22) : isDesktop ? 20 : 16 }}>
+                    {g.rank}
                   </span>
                   <span className="flex flex-col min-w-0">
                     <span className="font-semibold truncate" style={{ color: "var(--ink)", fontSize: isDesktop ? 17 : 15 }}>
