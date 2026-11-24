@@ -46,3 +46,9 @@ Vercel 프로젝트 설정 > Environment Variables에 .env.example과 동일한 
 `public/`의 `favicon.svg`, `icons/*.png`, `apple-touch-icon.png`와 `manifest.webmanifest`가 크롬
 "바로가기 만들기"/앱 설치 시 쓰이는 아이콘입니다. 현재 적용된 시안은 **양쌤스튜디오 아이콘 가족(종이색 바탕 + 남색 점수판)**이며,
 예전 시안(트로피·시상대·메달·왕관)의 원본 SVG는 `design/icon-options/`에 있습니다.
+
+## 시상식 장면 이미지 (`public/ceremony/`)
+리더보드 탭과 빔프로젝터 고정 화면 위쪽의 "천장에 걸리는 1·2·3위 태극기" 장면(`src/Ceremony.jsx`)에 쓰는 이미지예요. 모두 사이트 안에 두어 외부 요청이 없어요.
+- `arena-*.webp`: 배경 경기장 사진. [Adam Bouse, Unsplash](https://unsplash.com/photos/m5nbZDHr8jM)(Unsplash License, 무료). 경기장 로고가 안 보이게 가운데 전광판을 지우고, 크게 흐린 뒤 푸른 톤으로 보정했어요.
+- `flag-1~3.webp`: 태극기 규격 도안(공공 영역, [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flag_of_South_Korea.svg))에 천 주름·접힌 자국·천 결·위쪽 봉을 입혀 만든 이미지예요. 세 장은 주름 모양만 달라요.
+- 움직임: 카메라가 가운데에서 물러나며 3위→2위→1위 순으로 깃발이 내려와 걸려요. 기기의 '움직임 줄이기'를 켜면 마지막 장면만 보여요.
