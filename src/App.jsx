@@ -580,7 +580,7 @@ function Toast({ toast }) {
 
 function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, onRefreshRole }) {
   const [loaded, setLoaded] = useState(false);
-  const [title, setTitle] = useState("여기에 각종 체육행사명을 입력하세요.");
+  const [title, setTitle] = useState("개별스코어 대시보드");
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(title);
   const [students, setStudents] = useState([]);
@@ -662,7 +662,8 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
 
   function applyLoadedData(data) {
     if (!data) return;
-    if (data.title) setTitle(data.title);
+    // 예전 기본 제목이 그대로 저장된 코드는 새 기본 제목으로 보여줘요(직접 바꾼 제목은 그대로)
+    if (data.title) setTitle(data.title === "여기에 각종 체육행사명을 입력하세요." ? "개별스코어 대시보드" : data.title);
     if (Array.isArray(data.students)) {
       // 서버(Firestore)에는 이름이 없습니다. 이 데이터에 이름이 들어있다면
       // JSON 백업을 불러온 경우이므로, 그 이름을 이 기기의 이름표에 반영합니다.
@@ -1177,7 +1178,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                 icon: Trophy,
                 title: "리더보드",
                 points: [
-                  "학생별 누적 승점을 자동으로 계산해 순위대로 보여줘요. 동점자는 공동 순위로 처리돼요.",
+                  "경기마다 팀이 바뀌어도 학생 한 명씩 받은 승점을 모두 더해 개인 순위로 보여줘요. 동점자는 공동 순위로 처리돼요.",
                   "맨 위에는 시상식 장면이 나와요. 경기장 천장에서 3위·2위·1위 순서로 태극기가 내려와 걸리고, 그 아래에 순위·이름·승점이 나타나요. 1·2·3위가 바뀌면 장면이 처음부터 다시 나와요(공동 순위면 이름이 함께 보여요).",
                   "아래 전체 순위표에서 이름 옆 작은 칸들은 경기별 결과(승/무/패/부정행위)를 색으로 나타내요.",
                   "휴대폰·컴퓨터에서 '움직임 줄이기'를 켜 두면 움직임 없이 마지막 장면만 보여요.",
@@ -1199,7 +1200,7 @@ function Dashboard({ workspaceCode, onLeaveWorkspace, role, myName, deviceId, on
                 icon: CalendarDays,
                 title: "경기 기록",
                 points: [
-                  "날짜는 달력에서 바로 고르고, 종목을 정한 뒤 참가한 학생을 체크해요.",
+                  "날짜는 달력에서 바로 고르고, 종목을 정한 뒤 그 경기에 뛴 학생을 체크해요. 팀은 경기마다 따로 정하지 않아도 돼요. 체크한 학생마다 결과와 승점이 따로 남아요.",
                   "'승점 기준 설정'에서 승/무/패/부정행위 점수를 직접 정할 수 있고, '종목별 기준'으로 바꾸면 종목마다 다른 점수도 줄 수 있어요(예: 축구는 승리 3점, 배드민턴은 2점). 종목별 기준은 표에서 종목을 직접 추가·삭제해요.",
                   "참가자별 결과 선택에는 '직접 입력'도 있어서, 정해진 승/무/패 점수 대신 그 학생·그 경기에만 적용할 점수를 바로 입력할 수 있어요.",
                   "'전체 승 / 전체 무 / 전체 패 / 전체 부정행위' 버튼으로, 지금 화면에 보이는(필터된) 학생 전체를 한 번에 체크하고 같은 결과로 일괄 지정할 수 있어요. '전체 해제'로 체크를 한 번에 풀 수도 있어요.",
@@ -3252,7 +3253,7 @@ function AccessManagementPanel({ workspaceCode, showToast, deviceId }) {
 // 복구 코드 메모 파일
 function downloadRecoveryMemo(workspaceCode, recoveryCode) {
   const lines = [
-    "스코어 대시보드 복구 코드 메모",
+    "개별스코어 대시보드 복구 코드 메모",
     "",
     "코드: " + workspaceCode,
     "복구 코드: " + recoveryCode,
@@ -3375,7 +3376,7 @@ function IntroSplash({ onDone }) {
     <div
       onClick={onDone}
       role="img"
-      aria-label="스코어 대시보드 시작 화면"
+      aria-label="개별스코어 대시보드 시작 화면"
       className="ys-splash fixed inset-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer"
       style={{ zIndex: 100, background: "#F8F3EA", opacity: stage === 1 ? 0 : 1, transition: "opacity 0.55s ease" }}
     >
@@ -3461,14 +3462,14 @@ function IntroSplash({ onDone }) {
           </div>
         </div>
         <h1 className="ys-title">
-          <span>스코어</span> 대시보드
+          <span>개별스코어</span> 대시보드
         </h1>
-        <p className="ys-sub">매 순간의 승점이 모여, 오늘의 챔피언이 돼요</p>
+        <p className="ys-sub">팀은 경기마다 바뀌어도, 승점은 한 사람씩 쌓여요</p>
         <div className="ys-load" aria-hidden="true">
           <i />
         </div>
       </div>
-      <div className="ys-sign">YANGSSAEM STUDIO · SCORE</div>
+      <div className="ys-sign">YANGSSAEM STUDIO · INDIVIDUAL SCORE</div>
     </div>
   );
 }
@@ -3788,20 +3789,20 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
         <div className="flex justify-center mb-3">
           <span className="flex items-center gap-2 text-xs px-3 py-1 rounded-full" style={{ backgroundColor: "var(--surface-2)", color: "var(--ink-2)", border: "1px solid var(--line)" }}>
             <img src="/icons/yangssaem-face.webp" alt="" width="22" height="22" style={{ borderRadius: "50%", border: "1.5px solid #E2622B" }} />
-            <span><b style={{ color: "var(--ink)" }}>양쌤스튜디오</b> · 스코어</span>
+            <span><b style={{ color: "var(--ink)" }}>양쌤스튜디오</b> · 개별스코어</span>
           </span>
         </div>
         <div className="flex justify-center mb-2">
           <TrophyEmblem size={64} />
         </div>
         <h1 className="lb-title text-3xl text-center mb-1" style={{ color: "var(--ink)" }}>
-          <span style={{ color: "#E2622B" }}>스코어</span> 대시보드
+          <span style={{ color: "#E2622B" }}>개별스코어</span> 대시보드
         </h1>
         <p className="lb-mono text-center mb-2" style={{ color: "var(--muted)", fontSize: 10, letterSpacing: "0.3em" }}>
-          P.E SCORE LEADERBOARD
+          P.E INDIVIDUAL SCOREBOARD
         </p>
         <p className="text-sm text-center mb-5" style={{ color: "var(--ink-2)" }}>
-          수업, 행사에서 개인, 팀, 반의 성적을 빔프로젝터, 화면, 모바일로 공유할 수 있어요.
+          여러 경기를 하다 보면 팀이 섞여요. 팀이 바뀌어도 승점은 학생 한 명씩 따로 쌓여 개인 순위가 바로 나와요.
         </p>
 
         <button
@@ -3971,10 +3972,11 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {[
-                { title: "학교스포츠클럽 리그전", desc: "종목별 승점을 누적해 시즌 최다 승점자를 가려요." },
-                { title: "체육대회 종합 순위", desc: "개인전·단체전 점수를 한 화면에서 실시간 집계해요." },
-                { title: "체육수업 미니 게임", desc: "한 차시 안에서 팀별 승점을 즉석으로 매기고 보여줘요." },
-                { title: "학급 대항전", desc: "반별 대표가 각자 태블릿으로 입력하고 함께 관리해요." },
+                { title: "팀을 바꿔 가며 하는 수업", desc: "경기마다 팀을 새로 짜도 각자 받은 승점이 이어져, 누가 꾸준히 이겼는지 보여요." },
+                { title: "학교스포츠클럽 리그전", desc: "종목별 승점을 한 사람씩 누적해 시즌 최다 승점자를 가려요." },
+                { title: "체육대회 개인 MVP", desc: "개인전·단체전 결과를 참가한 학생 한 명씩에게 나눠 주고, 개인 순위로 모아 봐요." },
+                { title: "체육수업 미니 게임", desc: "한 차시에 여러 판을 해도, 판마다 이긴 학생에게 승점을 바로 매겨 보여줘요." },
+                { title: "반이 섞인 합동 수업", desc: "여러 반 학생이 한 팀이 돼도 학년·반·번호로 각자 기록돼요. 선생님 여러 명이 각자 태블릿으로 함께 입력해요." },
                 { title: "방과후 스포츠클럽", desc: "시즌 내내 누적 기록을 쌓아 학기말 시상까지 이어가요." },
                 { title: "빔프로젝터 전광판", desc: "리더보드 탭만 띄워 강당·운동장 대형 화면으로 공유해요." },
               ].map((item) => (
@@ -3998,8 +4000,8 @@ function WorkspaceGate({ lastCode, onFounderLogin, onCreateCode, onRequestAccess
               {[
                 { n: 1, title: "코드 만들기", desc: "원하는 코드(예: 3반체육왕2026)와 개설자 전용 비밀번호를 정해 새 코드를 만들어요. 동료와 함께 볼 거면 조회 비밀번호도 정해요(선택). 비밀번호는 되돌릴 수 없는 암호로만 저장돼서 다시 볼 수 없으니 따로 적어 두세요. 만들 때 나오는 복구 코드도 꼭 적어 두면, 개설자 전용 비밀번호를 잊었을 때 첫 화면 '개설자 전용 비밀번호를 잊었어요'에서 새로 정할 수 있어요. 이 코드로 어떤 기기에서든 같은 데이터를 이어서 관리해요." },
                 { n: 2, title: "명단 등록", desc: "'명단 관리' 탭에서 학생을 엑셀로 한 번에 올리거나 직접 추가해요(엑셀을 다시 올려도 같은 학년·반·번호는 중복되지 않아요). 이름은 이 기기에만 저장되니, 다른 기기에서 열 땐 그 기기에서 한 번 더 등록하거나 '이름표 가져오기'로 옮겨오세요." },
-                { n: 3, title: "경기 기록", desc: "'경기 기록' 탭에서 날짜·종목을 고르고 참가자를 체크해 결과를 입력해요. '전체 승/무/패' 버튼으로 한 팀 전체를 한 번에 처리하거나, '직접 입력'으로 특정 학생에게만 점수를 따로 줄 수도 있어요." },
-                { n: 4, title: "리더보드 공유", desc: "'리더보드' 탭이 자동으로 순위를 계산해요. 화면 위 '빔프로젝터 고정' 버튼을 누르면 리더보드만 크게 보이고 다른 조작이 잠기는 화면으로 바뀌어, 빔프로젝터나 모바일로 안전하게 띄워 보여줄 수 있어요. 되돌아오려면 개설자 비밀번호가 필요해요." },
+                { n: 3, title: "경기 기록", desc: "'경기 기록' 탭에서 날짜·종목을 고르고 그 경기에 뛴 학생을 체크해 결과를 입력해요. 이번 판 팀이 누구였든, 체크한 학생 한 명 한 명에게 승점이 따로 쌓여요. 한 팀을 골라 '전체 승/무/패'로 한 번에 처리하거나, '직접 입력'으로 특정 학생에게만 점수를 줄 수도 있어요." },
+                { n: 4, title: "리더보드 공유", desc: "'리더보드' 탭이 학생별 승점을 합쳐 개인 순위를 자동으로 계산해요. 화면 위 '빔프로젝터 고정' 버튼을 누르면 리더보드만 크게 보이고 다른 조작이 잠기는 화면으로 바뀌어, 빔프로젝터나 모바일로 안전하게 띄워 보여줄 수 있어요. 되돌아오려면 개설자 비밀번호가 필요해요." },
               ].map((s) => (
                 <div key={s.n} className="flex gap-3">
                   <div

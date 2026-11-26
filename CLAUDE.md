@@ -1,6 +1,6 @@
-# 스코어 대시보드 (leaderboard)
+# 개별스코어 대시보드 (leaderboard)
 
-체육행사·학교스포츠클럽 승점 대시보드예요. React + Vite + Firebase(Firestore, 익명 로그인)로 만들었고 Vercel로 배포해요(`main` 머지 시 실제 사이트 반영).
+여러 경기를 하며 팀이 섞여도 승점을 학생 한 명씩 따로 쌓는 개인 승점 대시보드예요(체육수업·체육행사·학교스포츠클럽). React + Vite + Firebase(Firestore, 익명 로그인)로 만들었고 Vercel로 배포해요(`main` 머지 시 실제 사이트 반영).
 
 ## 구조와 실행
 
