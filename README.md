@@ -1,6 +1,6 @@
-# 스코어 대시보드 (P.E Score Leaderboard)
+# 개별스코어 대시보드 (P.E Individual Scoreboard)
 
-React + Vite + Firebase(Firestore) 기반 체육행사·학교스포츠클럽 승점 대시보드. (예전 이름: 체육행사 승점 대시보드)
+React + Vite + Firebase(Firestore) 기반 개인 승점 대시보드. 여러 경기를 하며 팀이 섞여도 승점을 학생 한 명씩 따로 쌓아 개인 순위를 보여 줘요. (예전 이름: 스코어 대시보드, 체육행사 승점 대시보드)
 
 ## 로컬 실행
 ```
